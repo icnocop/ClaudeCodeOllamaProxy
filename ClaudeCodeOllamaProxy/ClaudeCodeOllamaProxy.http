@@ -1,0 +1,33 @@
+@host = http://localhost:11434
+
+### Version (must report >= 0.6.4)
+GET {{host}}/api/version
+
+### List models (from the claude CLI)
+GET {{host}}/api/tags
+
+### Show a model's capabilities
+POST {{host}}/api/show
+Content-Type: application/json
+
+{ "model": "claude-sonnet-4-5" }
+
+### OpenAI chat (Ask mode) — streamed SSE
+POST {{host}}/v1/chat/completions
+Content-Type: application/json
+
+{
+  "model": "claude-sonnet-4-5",
+  "stream": true,
+  "messages": [ { "role": "user", "content": "Say hi in exactly three words." } ]
+}
+
+### Native Ollama chat (NDJSON)
+POST {{host}}/api/chat
+Content-Type: application/json
+
+{
+  "model": "claude-sonnet-4-5",
+  "stream": true,
+  "messages": [ { "role": "user", "content": "Say hi in exactly three words." } ]
+}
