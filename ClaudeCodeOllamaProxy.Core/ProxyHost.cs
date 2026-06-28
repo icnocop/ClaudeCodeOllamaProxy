@@ -102,23 +102,47 @@ public static class ProxyHost
 
         // Warm the model catalog once the server is up (queries the claude CLI once; falls back gracefully
         // if unavailable). Runs from the ApplicationStarted hook so both hosts benefit without awaiting.
-        app.Lifetime.ApplicationStarted.Register(() => _ = WarmCatalogAsync(app, startupLogger));
+        // ApplicationStopping cancels an in-flight warm-up on stop/restart so it doesn't race host disposal.
+        app.Lifetime.ApplicationStarted.Register(() =>
+            _ = WarmCatalogAsync(app, startupLogger, app.Lifetime.ApplicationStopping));
 
         return app;
     }
 
-    private static async Task WarmCatalogAsync(WebApplication app, ILogger logger)
+    private static async Task WarmCatalogAsync(WebApplication app, ILogger logger, CancellationToken stoppingToken)
     {
         try
         {
             var catalog = app.Services.GetRequiredService<ModelCatalog>();
-            var models = await catalog.GetModelsAsync();
-            logger.LogInformation("ClaudeCodeOllamaProxy ready. Models: {Models}",
-                string.Join(", ", models.Select(m => m.Id)));
+            var models = await catalog.GetModelsAsync(stoppingToken);
+            SafeLog(stoppingToken, () => logger.LogInformation("ClaudeCodeOllamaProxy ready. Models: {Models}",
+                string.Join(", ", models.Select(m => m.Id))));
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
+            // Host is stopping/restarting before warm-up finished — expected, nothing to log.
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to warm the model catalog at startup.");
+            SafeLog(stoppingToken, () => logger.LogError(ex, "Failed to warm the model catalog at startup."));
+        }
+    }
+
+    // The logger providers are disposed during host shutdown; a fire-and-forget warm-up that outlives the
+    // host must never throw while logging into them — that would surface as an unobserved TaskScheduler
+    // exception and crash the process. (The aggregating logger rethrows a disposed provider as an
+    // AggregateException, so this catch is deliberately broad — logging is best-effort here.)
+    private static void SafeLog(CancellationToken stoppingToken, Action log)
+    {
+        if (stoppingToken.IsCancellationRequested)
+            return;
+        try
+        {
+            log();
+        }
+        catch
+        {
+            // Host already torn down between the cancellation check and the log call.
         }
     }
 }

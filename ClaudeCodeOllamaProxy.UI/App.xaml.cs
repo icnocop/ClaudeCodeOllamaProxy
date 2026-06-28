@@ -3,7 +3,6 @@ using ClaudeCodeOllamaProxy.UI.Views;
 using H.NotifyIcon;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.UI.ViewManagement;
 
 namespace ClaudeCodeOllamaProxy.UI;
@@ -61,6 +60,10 @@ public partial class App : Application
         _trayIcon = new TrayIconView();
         _trayIcon.TrayIcon.ForceCreate();
 
+        // Render the initial icon (brand glyph + status circle) now that the tray icon exists; it then
+        // re-renders on every host state change via TrayIconView.OnStateChanged.
+        _trayIcon.RefreshIcon();
+
         // Apply the saved theme to the window + tray icon, and react to live system theme changes.
         _uiSettings = new UISettings();
         _uiSettings.ColorValuesChanged += (_, _) => _dispatcher?.TryEnqueue(ApplyTheme);
@@ -83,8 +86,8 @@ public partial class App : Application
         if (MainWindow?.AppWindow is { } appWindow)
             TitleBarThemeHelper.Apply(appWindow, ThemeHelper.IsEffectivelyLight(setting));
 
-        if (_trayIcon is not null)
-            _trayIcon.TrayIcon.IconSource = new BitmapImage(new Uri(ThemeHelper.TrayIconUri(setting)));
+        // The tray icon is theme-independent (brand glyph + status circle), so it isn't touched here —
+        // it's composed by TrayIconView based on the proxy host state.
     }
 
     private void OnMainWindowClosed(object sender, WindowEventArgs e)
@@ -124,6 +127,16 @@ public partial class App : Application
     /// <summary>Copy the current listening URL to the clipboard (on the UI thread).</summary>
     public void CopyUrlToClipboard() => RunOnUi(() => ClipboardHelper.SetText(ProxyController.ListeningUrl));
 
+    /// <summary>Start the in-process proxy host (no-op if already running). Marshaled to the UI thread
+    /// because the tray context menu runs on a separate thread.</summary>
+    public void StartProxy() => RunOnUi(async () => await ProxyController.StartAsync());
+
+    /// <summary>Stop the in-process proxy host (no-op if already stopped).</summary>
+    public void StopProxy() => RunOnUi(async () => await ProxyController.StopAsync());
+
+    /// <summary>Restart the in-process proxy host (picks up a changed port).</summary>
+    public void RestartProxy() => RunOnUi(async () => await ProxyController.RestartAsync());
+
     /// <summary>Relaunch the app elevated and exit this instance so the elevated one takes over.</summary>
     public void RestartAsAdministrator()
     {
@@ -140,8 +153,9 @@ public partial class App : Application
         HandleClosedEvents = false;
 
         // Detach state-change handlers before stopping/disposing so the stop's StateChanged doesn't
-        // try to update an already-disposed tray icon.
+        // try to update an already-disposed tray icon or closing window.
         _trayIcon?.DetachEvents();
+        (MainWindow as MainWindow)?.DetachStatusIcon();
 
         try
         {

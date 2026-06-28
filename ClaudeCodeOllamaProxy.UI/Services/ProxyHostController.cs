@@ -7,6 +7,15 @@ using Microsoft.UI.Dispatching;
 
 namespace ClaudeCodeOllamaProxy.UI.Services;
 
+/// <summary>Lifecycle state of the in-process proxy host, surfaced as the tray-icon status indicator.</summary>
+public enum ProxyState
+{
+    Stopped,
+    Starting,
+    Running,
+    Stopping,
+}
+
 /// <summary>
 /// Owns the in-process ClaudeCodeOllamaProxy host lifecycle (start/stop/restart) for the tray app, and
 /// captures its log output into <see cref="Logs"/> for the Logs page. The host binds to the port from
@@ -33,20 +42,31 @@ public sealed class ProxyHostController
     /// <summary>Live host log output, updated on the UI thread. Bind from the Logs page.</summary>
     public ObservableCollection<string> Logs { get; } = new();
 
-    public bool IsRunning { get; private set; }
+    /// <summary>Current lifecycle state, including the transient Starting/Stopping phases.</summary>
+    public ProxyState State { get; private set; } = ProxyState.Stopped;
+
+    public bool IsRunning => State == ProxyState.Running;
 
     /// <summary>The port the host is actually bound to (captured at start time, not the pending setting).</summary>
     public int RunningPort { get; private set; }
 
     public string ListeningUrl => $"http://127.0.0.1:{RunningPort}";
 
-    /// <summary>Raised (on the UI thread) whenever <see cref="IsRunning"/> / <see cref="ListeningUrl"/> change.</summary>
+    /// <summary>Raised (on the UI thread) whenever <see cref="State"/> / <see cref="ListeningUrl"/> change.</summary>
     public event Action? StateChanged;
+
+    private void SetState(ProxyState state)
+    {
+        State = state;
+        StateChanged?.Invoke();
+    }
 
     public async Task StartAsync()
     {
-        if (IsRunning)
+        if (State is ProxyState.Running or ProxyState.Starting)
             return;
+
+        SetState(ProxyState.Starting);
 
         // Capture the configured port now; a later port change won't affect this run until the next restart.
         RunningPort = _settings.Port;
@@ -64,14 +84,12 @@ public sealed class ProxyHostController
             // Most likely the port is already in use (e.g. another instance). Report and stay stopped.
             await app.DisposeAsync().ConfigureAwait(true);
             AddLog($"Failed to start on {url}: {ex.Message}");
-            IsRunning = false;
-            StateChanged?.Invoke();
+            SetState(ProxyState.Stopped);
             return;
         }
 
         _app = app;
-        IsRunning = true;
-        StateChanged?.Invoke();
+        SetState(ProxyState.Running);
     }
 
     private void AddLog(string line) => _dispatcher.TryEnqueue(() => Logs.Add(line));
@@ -80,11 +98,14 @@ public sealed class ProxyHostController
     {
         var app = _app;
         if (app is null)
+        {
+            if (State != ProxyState.Stopped)
+                SetState(ProxyState.Stopped);
             return;
+        }
 
         _app = null;
-        IsRunning = false;
-        StateChanged?.Invoke();
+        SetState(ProxyState.Stopping);
 
         try
         {
@@ -93,6 +114,7 @@ public sealed class ProxyHostController
         finally
         {
             await app.DisposeAsync().ConfigureAwait(true);
+            SetState(ProxyState.Stopped);
         }
     }
 

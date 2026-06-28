@@ -3,6 +3,8 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Windows.Win32;
+using Windows.Win32.UI.WindowsAndMessaging;
 
 namespace ClaudeCodeOllamaProxy.UI.Views;
 
@@ -15,6 +17,10 @@ public sealed partial class TrayIconView : UserControl
 {
     private readonly DispatcherQueue _dispatcher;
     private bool _detached;
+
+    // The HICON currently shown by the tray. Kept alive until replaced (the shell references it), then
+    // freed so the per-state recomposition doesn't leak GDI handles.
+    private IntPtr _currentIcon;
 
     public TrayIconView()
     {
@@ -29,11 +35,43 @@ public sealed partial class TrayIconView : UserControl
         UpdateTooltip();
     }
 
+    /// <summary>
+    /// Compose the tray icon for the current host state (status circle overlay) and push it to the tray.
+    /// Must be called after <c>ForceCreate()</c>, and on every subsequent state change.
+    /// </summary>
+    public void RefreshIcon()
+    {
+        if (_detached)
+            return;
+
+        var newIcon = StatusIconRenderer.CreateIcon(App.ProxyController.State);
+        try
+        {
+            TrayIcon.TrayIcon.UpdateIcon(newIcon);
+        }
+        catch (ObjectDisposedException)
+        {
+            PInvoke.DestroyIcon(new HICON(newIcon));   // Tray is gone (app exiting) — don't leak the handle we just made.
+            return;
+        }
+
+        var previous = _currentIcon;
+        _currentIcon = newIcon;
+        if (previous != IntPtr.Zero)
+            PInvoke.DestroyIcon(new HICON(previous));
+    }
+
     /// <summary>Stop reacting to host state changes — call before disposing the tray icon on exit.</summary>
     public void DetachEvents()
     {
         _detached = true;
         App.ProxyController.StateChanged -= OnStateChanged;
+
+        if (_currentIcon != IntPtr.Zero)
+        {
+            PInvoke.DestroyIcon(new HICON(_currentIcon));
+            _currentIcon = IntPtr.Zero;
+        }
     }
 
     // Left-click runs on the icon's own (main) thread, so a command binding is fine here.
@@ -44,19 +82,36 @@ public sealed partial class TrayIconView : UserControl
 
     private void CopyUrlItem_Click(object sender, RoutedEventArgs e) => App.Current?.CopyUrlToClipboard();
 
+    private void StartItem_Click(object sender, RoutedEventArgs e) => App.Current?.StartProxy();
+
+    private void StopItem_Click(object sender, RoutedEventArgs e) => App.Current?.StopProxy();
+
+    private void RestartItem_Click(object sender, RoutedEventArgs e) => App.Current?.RestartProxy();
+
     private void QuitItem_Click(object sender, RoutedEventArgs e) => App.Current?.ExitApplication();
 
     private void ContextMenu_Opening(object sender, object e)
     {
         // Show the current URL alongside "Copy URL".
         CopyUrlItem.Text = $"Copy URL  ({App.ProxyController.ListeningUrl})";
+
+        // Enable only the actions that make sense for the current host state; everything is disabled
+        // mid-transition (Starting/Stopping) to avoid overlapping start/stop calls.
+        var state = App.ProxyController.State;
+        StartItem.IsEnabled = state == ProxyState.Stopped;
+        StopItem.IsEnabled = state == ProxyState.Running;
+        RestartItem.IsEnabled = state == ProxyState.Running;
     }
 
     private void OnStateChanged()
     {
         if (_detached)
             return;
-        _dispatcher.TryEnqueue(UpdateTooltip);
+        _dispatcher.TryEnqueue(() =>
+        {
+            UpdateTooltip();
+            RefreshIcon();
+        });
     }
 
     private void UpdateTooltip()

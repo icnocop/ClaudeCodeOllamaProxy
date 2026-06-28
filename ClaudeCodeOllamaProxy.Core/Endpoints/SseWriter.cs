@@ -26,6 +26,19 @@ public sealed class SseWriter
         _created = created;
     }
 
+    /// <summary>
+    /// Set the status and headers for a Server-Sent Events response: <c>200</c>, the
+    /// <c>text/event-stream</c> content type, no caching, and <c>X-Accel-Buffering: no</c> so any
+    /// intermediary streams chunks live instead of buffering the whole response.
+    /// </summary>
+    public static void Start(HttpResponse response)
+    {
+        response.StatusCode = StatusCodes.Status200OK;
+        response.ContentType = "text/event-stream";
+        response.Headers.CacheControl = "no-cache";
+        response.Headers["X-Accel-Buffering"] = "no";
+    }
+
     public async Task WriteContentAsync(string content, CancellationToken ct)
     {
         if (string.IsNullOrEmpty(content)) return;
