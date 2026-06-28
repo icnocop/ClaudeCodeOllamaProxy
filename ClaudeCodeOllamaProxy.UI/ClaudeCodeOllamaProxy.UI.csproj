@@ -14,7 +14,11 @@
     <UseWinUI>true</UseWinUI>
     <!-- Unpackaged: plain .exe, no MSIX. Run-at-startup is handled via the HKCU Run registry key. -->
     <WindowsPackageType>None</WindowsPackageType>
-    <EnableMsixTooling>false</EnableMsixTooling>
+    <!-- Must be true even though we ship unpackaged: with it false, `dotnet publish` drops the app's
+         resources.pri and compiled XAML (.xbf), so the published .exe throws XamlParseException
+         ("Cannot locate resource from 'ms-appx:///MainWindow.xaml'") on launch. It does NOT package
+         into an MSIX — WindowsPackageType=None keeps the output a plain unpackaged .exe. -->
+    <EnableMsixTooling>true</EnableMsixTooling>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>preview</LangVersion>

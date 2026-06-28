@@ -35,7 +35,9 @@
   <!-- Ship the proxy configuration alongside whichever host consumes this library. -->
   <ItemGroup>
     <Content Include="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="appsettings.Development.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Dev-only overrides: copied to the build output for local runs, but excluded from publish (and
+         therefore the release zips). It's only ever loaded when ASPNETCORE_ENVIRONMENT=Development. -->
+    <Content Include="appsettings.Development.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Never" />
   </ItemGroup>
 
 </Project>

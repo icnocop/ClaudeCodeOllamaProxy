@@ -38,7 +38,7 @@ public partial class App : Application
     private static void OnUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e) =>
         // Leave e.Handled = false so the process still terminates as before — but now the real exception
         // (type, message, stack) is recorded to crash.log instead of vanishing into the stowed-exception code.
-        CrashLog.Report("Application.UnhandledException", e.Exception);
+        CrashLog.Report("Application.UnhandledException", e.Exception, e.Message);
 
     /// <summary>Strongly-typed accessor for the running app instance.</summary>
     public static new App? Current => (App?)Application.Current;

@@ -1,9 +1,11 @@
 name: build
 
-# Build the solution on approved pull requests, and publish a draft GitHub
-# Release (with per-app / per-processor zips) when code lands on main.
-# A manual workflow_dispatch run does both the compile check and the full
-# package + artifact upload, but does NOT create a draft release.
+# Build, package, and (on main) release in a single job.
+# - Approved pull request: builds, packages, and uploads per-app/per-processor
+#   zip artifacts so reviewers can download them for testing. No release.
+# - Push to main: same as above, plus publishes a DRAFT GitHub Release with the
+#   zips and an auto-generated changelog.
+# - Manual workflow_dispatch: builds, packages, and uploads artifacts. No release.
 on:
   pull_request_review:
     types: [submitted]
@@ -12,17 +14,19 @@ on:
   workflow_dispatch: # Allows manual triggering from the "Actions" tab
 
 jobs:
-  # ---------------------------------------------------------------------------
-  # Approved-PR compile check: only runs once a review is submitted with state
-  # "approved". Verifies the whole solution builds. No release, no artifacts.
-  # ---------------------------------------------------------------------------
   build:
-    if: (github.event_name == 'pull_request_review' && github.event.review.state == 'approved') || github.event_name == 'workflow_dispatch'
+    if: |
+      (github.event_name == 'pull_request_review' && github.event.review.state == 'approved') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      github.event_name == 'workflow_dispatch'
     runs-on: windows-latest
+    permissions:
+      contents: write   # required by the draft-release step (push-to-main only)
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.event.pull_request.head.sha }}   # set on PR-review runs; empty (= default ref) otherwise
+          fetch-depth: 0   # full history so auto-generated release notes can diff since the last release
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -31,27 +35,9 @@ jobs:
       - name: Restore
         run: dotnet restore ClaudeCodeOllamaProxy.slnx
 
+      # Fast whole-solution compile check before the longer publish steps.
       - name: Build (x64)
         run: dotnet build ClaudeCodeOllamaProxy.slnx -c Release -p:Platform=x64 --no-restore
-
-  # ---------------------------------------------------------------------------
-  # Release: only runs on push to main. Publishes framework-dependent builds of
-  # the Console (AnyCPU, one zip) and the UI (x86/x64/ARM64), zips each, and
-  # attaches them to a DRAFT GitHub Release with auto-generated changelog notes.
-  # ---------------------------------------------------------------------------
-  release:
-    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
-    runs-on: windows-latest
-    permissions:
-      contents: write   # required to create the release / tag
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0   # full history so auto-generated notes can diff since the last release
-
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '10.0.x'
 
       - name: Compute version
         id: version
@@ -84,17 +70,15 @@ jobs:
           Compress-Archive -Path publish/ui-win-x64/*   -DestinationPath "dist/ClaudeCodeOllamaProxy.UI-win-x64-$env:VERSION.zip"
           Compress-Archive -Path publish/ui-win-arm64/* -DestinationPath "dist/ClaudeCodeOllamaProxy.UI-win-arm64-$env:VERSION.zip"
 
-      # Also expose the zips on the workflow run itself (downloadable before the
-      # draft release is published).
+      # Expose the zips on the workflow run itself so they can be downloaded for
+      # testing (on every trigger, including approved PRs).
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ClaudeCodeOllamaProxy-${{ steps.version.outputs.VERSION }}
           path: dist/*.zip
 
-      # Only publish a draft release when code lands on main; a manual
-      # workflow_dispatch run still builds, packages, and uploads artifacts, but
-      # does not create a release.
+      # Only publish a draft release when code lands on main.
       - name: Create draft release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
