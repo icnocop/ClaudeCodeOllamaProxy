@@ -1,0 +1,99 @@
+name: build
+
+# Build the solution on approved pull requests, and publish a draft GitHub
+# Release (with per-app / per-processor zips) when code lands on main.
+on:
+  pull_request_review:
+    types: [submitted]
+  push:
+    branches: [main]
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Approved-PR compile check: only runs once a review is submitted with state
+  # "approved". Verifies the whole solution builds. No release, no artifacts.
+  # ---------------------------------------------------------------------------
+  build:
+    if: github.event_name == 'pull_request_review' && github.event.review.state == 'approved'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore ClaudeCodeOllamaProxy.slnx
+
+      - name: Build (x64)
+        run: dotnet build ClaudeCodeOllamaProxy.slnx -c Release -p:Platform=x64 --no-restore
+
+  # ---------------------------------------------------------------------------
+  # Release: only runs on push to main. Publishes framework-dependent builds of
+  # the Console (AnyCPU, one zip) and the UI (x86/x64/ARM64), zips each, and
+  # attaches them to a DRAFT GitHub Release with auto-generated changelog notes.
+  # ---------------------------------------------------------------------------
+  release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: windows-latest
+    permissions:
+      contents: write   # required to create the release / tag
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history so auto-generated notes can diff since the last release
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Compute version
+        id: version
+        shell: bash
+        run: echo "VERSION=v$(date +'%Y.%m.%d').${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+
+      # Console: framework-dependent, portable (no RID -> AnyCPU managed output).
+      - name: Publish Console
+        run: dotnet publish ClaudeCodeOllamaProxy.Console/ClaudeCodeOllamaProxy.Console.csproj -c Release --no-self-contained -o publish/console
+
+      # UI: WinUI unpackaged publish requires a RID per processor; --self-contained
+      # false keeps it framework-dependent. Platform is mapped from the RID.
+      - name: Publish UI (x86)
+        run: dotnet publish ClaudeCodeOllamaProxy.UI/ClaudeCodeOllamaProxy.UI.csproj -c Release -r win-x86 --self-contained false -p:Platform=x86 -p:WindowsPackageType=None -o publish/ui-win-x86
+
+      - name: Publish UI (x64)
+        run: dotnet publish ClaudeCodeOllamaProxy.UI/ClaudeCodeOllamaProxy.UI.csproj -c Release -r win-x64 --self-contained false -p:Platform=x64 -p:WindowsPackageType=None -o publish/ui-win-x64
+
+      - name: Publish UI (ARM64)
+        run: dotnet publish ClaudeCodeOllamaProxy.UI/ClaudeCodeOllamaProxy.UI.csproj -c Release -r win-arm64 --self-contained false -p:Platform=ARM64 -p:WindowsPackageType=None -o publish/ui-win-arm64
+
+      - name: Package zips
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Compress-Archive -Path publish/console/*      -DestinationPath "dist/ClaudeCodeOllamaProxy.Console-$env:VERSION.zip"
+          Compress-Archive -Path publish/ui-win-x86/*   -DestinationPath "dist/ClaudeCodeOllamaProxy.UI-win-x86-$env:VERSION.zip"
+          Compress-Archive -Path publish/ui-win-x64/*   -DestinationPath "dist/ClaudeCodeOllamaProxy.UI-win-x64-$env:VERSION.zip"
+          Compress-Archive -Path publish/ui-win-arm64/* -DestinationPath "dist/ClaudeCodeOllamaProxy.UI-win-arm64-$env:VERSION.zip"
+
+      # Also expose the zips on the workflow run itself (downloadable before the
+      # draft release is published).
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ClaudeCodeOllamaProxy-${{ steps.version.outputs.VERSION }}
+          path: dist/*.zip
+
+      - name: Create draft release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.VERSION }}
+          name: ${{ steps.version.outputs.VERSION }}
+          draft: true
+          generate_release_notes: true   # GitHub auto-changelog from commits/PRs since the last release
+          files: dist/*.zip

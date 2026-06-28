@@ -1,3 +1,24 @@
 <Solution>
-  <Project Path="ClaudeCodeOllamaProxy/ClaudeCodeOllamaProxy.csproj" />
+  <!-- The WinUI app (ClaudeCodeOllamaProxy.UI) only builds for x64/x86/ARM64 (no "Any CPU"), so the
+       solution exposes those platforms. The two .NET projects are Any CPU and map automatically. -->
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+    <Platform Name="ARM64" />
+  </Configurations>
+  <Folder Name="/Solution Items/">
+    <File Path=".gitattributes" />
+    <File Path=".gitignore" />
+    <File Path="CLAUDE.md" />
+    <File Path="LICENSE.txt" />
+    <File Path="README.md" />
+  </Folder>
+  <Project Path="ClaudeCodeOllamaProxy.Console/ClaudeCodeOllamaProxy.Console.csproj" />
+  <Project Path="ClaudeCodeOllamaProxy.Core/ClaudeCodeOllamaProxy.Core.csproj" />
+  <Project Path="ClaudeCodeOllamaProxy.UI/ClaudeCodeOllamaProxy.UI.csproj">
+    <Platform Solution="*|ARM64" Project="ARM64" />
+    <Platform Solution="*|x64" Project="x64" />
+    <Platform Solution="*|x86" Project="x86" />
+  </Project>
+  <Project Path="ClaudeCodeOllamaProxy.UI.Tests/ClaudeCodeOllamaProxy.UI.Tests.csproj" />
 </Solution>

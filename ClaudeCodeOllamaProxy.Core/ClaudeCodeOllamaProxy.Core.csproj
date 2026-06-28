@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>ClaudeCodeOllamaProxy</RootNamespace>
+    <AssemblyName>ClaudeCodeOllamaProxy.Core</AssemblyName>
+  </PropertyGroup>
+
+  <!-- ASP.NET Core types (WebApplication, endpoints, hosting) without the Web SDK, so this library
+       can be referenced by both the console host and the WinUI tray app. -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <!-- Replicate the Microsoft.NET.Sdk.Web implicit global usings (this is a plain SDK project). -->
+  <ItemGroup>
+    <Using Include="System.Net.Http.Json" />
+    <Using Include="Microsoft.AspNetCore.Builder" />
+    <Using Include="Microsoft.AspNetCore.Hosting" />
+    <Using Include="Microsoft.AspNetCore.Http" />
+    <Using Include="Microsoft.AspNetCore.Routing" />
+    <Using Include="Microsoft.Extensions.Configuration" />
+    <Using Include="Microsoft.Extensions.DependencyInjection" />
+    <Using Include="Microsoft.Extensions.Hosting" />
+    <Using Include="Microsoft.Extensions.Logging" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AJGit.Claude.AgentSdk" Version="0.6.1" />
+    <PackageReference Include="Karambolo.Extensions.Logging.File" Version="4.1.0" />
+  </ItemGroup>
+
+  <!-- Ship the proxy configuration alongside whichever host consumes this library. -->
+  <ItemGroup>
+    <Content Include="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="appsettings.Development.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

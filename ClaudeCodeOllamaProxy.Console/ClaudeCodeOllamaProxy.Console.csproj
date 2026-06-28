@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>ClaudeCodeOllamaProxy</RootNamespace>
+    <AssemblyName>ClaudeCodeOllamaProxy.Console</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ClaudeCodeOllamaProxy.Core\ClaudeCodeOllamaProxy.Core.csproj" />
+  </ItemGroup>
+
+</Project>
