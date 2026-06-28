@@ -26,7 +26,20 @@ public partial class App : Application
     private DispatcherQueue? _dispatcher;
     private UISettings? _uiSettings;
 
-    public App() => InitializeComponent();
+    public App()
+    {
+        // Capture UI-thread exceptions before WinUI swallows them into an opaque "stowed exception"
+        // (0xC000027B). Process-wide handlers (AppDomain / TaskScheduler) are registered earlier in
+        // Program.Main so they also cover failures before the XAML layer is up.
+        UnhandledException += OnUnhandledException;
+
+        InitializeComponent();
+    }
+
+    private static void OnUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e) =>
+        // Leave e.Handled = false so the process still terminates as before — but now the real exception
+        // (type, message, stack) is recorded to crash.log instead of vanishing into the stowed-exception code.
+        CrashLog.Report("Application.UnhandledException", e.Exception);
 
     /// <summary>Strongly-typed accessor for the running app instance.</summary>
     public static new App? Current => (App?)Application.Current;

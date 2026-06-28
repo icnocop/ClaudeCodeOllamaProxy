@@ -24,6 +24,10 @@ public sealed class SettingsStore
             : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ClaudeCodeOllamaProxy.UI");
     private static readonly string FilePath = Path.Combine(Dir, "settings.json");
 
+    /// <summary>The per-user data folder (%LOCALAPPDATA%\ClaudeCodeOllamaProxy.UI, or the test override).
+    /// Shared with <see cref="CrashLog"/> so crash logs land next to settings.json.</summary>
+    public static string DataDirectory => Dir;
+
     /// <summary>Persisted main-window position and size (screen coordinates).</summary>
     public sealed record WindowPlacement(int X, int Y, int Width, int Height);
 

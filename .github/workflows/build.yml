@@ -2,6 +2,8 @@ name: build
 
 # Build the solution on approved pull requests, and publish a draft GitHub
 # Release (with per-app / per-processor zips) when code lands on main.
+# A manual workflow_dispatch run does both the compile check and the full
+# package + artifact upload, but does NOT create a draft release.
 on:
   pull_request_review:
     types: [submitted]
@@ -15,7 +17,7 @@ jobs:
   # "approved". Verifies the whole solution builds. No release, no artifacts.
   # ---------------------------------------------------------------------------
   build:
-    if: github.event_name == 'pull_request_review' && github.event.review.state == 'approved'
+    if: (github.event_name == 'pull_request_review' && github.event.review.state == 'approved') || github.event_name == 'workflow_dispatch'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -38,7 +40,7 @@ jobs:
   # attaches them to a DRAFT GitHub Release with auto-generated changelog notes.
   # ---------------------------------------------------------------------------
   release:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
     runs-on: windows-latest
     permissions:
       contents: write   # required to create the release / tag
@@ -90,7 +92,11 @@ jobs:
           name: ClaudeCodeOllamaProxy-${{ steps.version.outputs.VERSION }}
           path: dist/*.zip
 
+      # Only publish a draft release when code lands on main; a manual
+      # workflow_dispatch run still builds, packages, and uploads artifacts, but
+      # does not create a release.
       - name: Create draft release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.VERSION }}
