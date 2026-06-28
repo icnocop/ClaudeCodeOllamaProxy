@@ -69,8 +69,9 @@ public partial class App : Application
         _uiSettings.ColorValuesChanged += (_, _) => _dispatcher?.TryEnqueue(ApplyTheme);
         ApplyTheme();
 
-        // Launched at login (registry "--startup") → stay hidden in the tray; otherwise show the window.
-        if (!IsStartupLaunch())
+        // Stay hidden in the tray when launched at login (registry "--startup") or when the user opted to
+        // always start minimized; otherwise show the window.
+        if (!IsStartupLaunch() && !Settings.StartMinimizedToTray)
             ShowMainWindow();
     }
 

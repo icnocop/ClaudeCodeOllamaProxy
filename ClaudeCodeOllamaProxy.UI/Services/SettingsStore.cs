@@ -15,6 +15,10 @@ public sealed class SettingsStore
     public const int DefaultWindowWidth = 690;
     public const int DefaultWindowHeight = 840;
 
+    /// <summary>The smallest the main window may be sized to (enforced both on restore and live resizing).</summary>
+    public const int MinWindowWidth = 420;
+    public const int MinWindowHeight = 420;
+
     // Allow tests (or advanced users) to redirect the settings folder via an env var; defaults to
     // %LOCALAPPDATA%\ClaudeCodeOllamaProxy.UI. Lets a test run with isolated settings (no UAC, fixed
     // theme/port) without clobbering the real user settings.
@@ -24,14 +28,26 @@ public sealed class SettingsStore
             : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ClaudeCodeOllamaProxy.UI");
     private static readonly string FilePath = Path.Combine(Dir, "settings.json");
 
+    // Cached, reused across saves (CA1869: a fresh JsonSerializerOptions per call hurts performance).
+    private static readonly JsonSerializerOptions SerializerOptions = new() { WriteIndented = true };
+
     /// <summary>The per-user data folder (%LOCALAPPDATA%\ClaudeCodeOllamaProxy.UI, or the test override).
     /// Shared with <see cref="CrashLog"/> so crash logs land next to settings.json.</summary>
     public static string DataDirectory => Dir;
 
-    /// <summary>Persisted main-window position and size (screen coordinates).</summary>
-    public sealed record WindowPlacement(int X, int Y, int Width, int Height);
+    /// <summary>
+    /// Persisted main-window position and size (screen coordinates), plus the outer bounds of the monitor
+    /// it was on. The monitor bounds let us restore onto the same display and detect when that display is
+    /// gone (fall back to primary) or has changed resolution (shrink the window to fit). The monitor fields
+    /// are 0 for placements saved by older versions, which are treated as "monitor unknown".
+    /// </summary>
+    public sealed record WindowPlacement(
+        int X, int Y, int Width, int Height,
+        int MonitorX = 0, int MonitorY = 0, int MonitorWidth = 0, int MonitorHeight = 0);
 
-    private sealed class Data
+    /// <summary>The on-disk shape of settings.json. Public so tests can serialize a real instance instead
+    /// of hand-writing the JSON (keeping the test in lock-step with the schema).</summary>
+    public sealed class Data
     {
         public int Port { get; set; } = DefaultPort;
         public string Theme { get; set; } = AppTheme.System;
@@ -40,6 +56,7 @@ public sealed class SettingsStore
         public double NavPaneLength { get; set; } = DefaultNavPaneLength;
         public bool RunAsAdmin { get; set; }
         public bool MinimizeToTrayOnClose { get; set; } = true;
+        public bool StartMinimizedToTray { get; set; }
     }
 
     private Data _data = new();
@@ -108,6 +125,19 @@ public sealed class SettingsStore
         }
     }
 
+    /// <summary>When true, the app starts hidden in the tray (no window shown) on a normal launch.</summary>
+    public bool StartMinimizedToTray
+    {
+        get => _data.StartMinimizedToTray;
+        set
+        {
+            if (_data.StartMinimizedToTray == value)
+                return;
+            _data.StartMinimizedToTray = value;
+            Save();
+        }
+    }
+
     /// <summary>Reset every persisted setting back to its default value.</summary>
     public void ResetToDefaults()
     {
@@ -162,7 +192,7 @@ public sealed class SettingsStore
         try
         {
             Directory.CreateDirectory(Dir);
-            File.WriteAllText(FilePath, JsonSerializer.Serialize(_data, new JsonSerializerOptions { WriteIndented = true }));
+            File.WriteAllText(FilePath, JsonSerializer.Serialize(_data, SerializerOptions));
         }
         catch
         {

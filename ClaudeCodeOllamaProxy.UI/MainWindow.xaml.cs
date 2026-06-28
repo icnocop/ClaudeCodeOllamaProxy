@@ -36,6 +36,9 @@ public sealed partial class MainWindow : Window
         App.ProxyController.StateChanged += OnStateChanged;
         RefreshStatusIcon();
 
+        // Stop the window from being resized below a usable minimum (WinUI has no built-in min size).
+        WindowMinSizeHelper.Apply(_hwnd, SettingsStore.MinWindowWidth, SettingsStore.MinWindowHeight);
+
         // Center on first launch; restore the saved position/size on later launches.
         WindowPlacementHelper.ApplyInitialPlacement(AppWindow, App.Settings);
 

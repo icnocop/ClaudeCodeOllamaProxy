@@ -9,3 +9,7 @@ AttachThreadInput
 MessageBox
 DestroyIcon
 SendMessage
+SetWindowSubclass
+DefSubclassProc
+GetDpiForWindow
+MINMAXINFO

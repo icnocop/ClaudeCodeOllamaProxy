@@ -26,6 +26,17 @@ public static class Screenshotter
     /// <summary>Resize the window (window-rect pixels) and center it on screen, clamped to the work area.</summary>
     public static void Resize(Window window, int width, int height)
     {
+        var (x, y, w, h) = CenteredRect(width, height);
+        PInvoke.MoveWindow(Handle(window), x, y, w, h, bRepaint: true);
+    }
+
+    /// <summary>
+    /// The centered, work-area-clamped window rectangle (window-rect pixels) for a desired size. Used both
+    /// to position the window directly and to pre-seed the app's saved placement in settings.json so it
+    /// launches at the right size — see <c>AppSession</c>.
+    /// </summary>
+    public static (int X, int Y, int Width, int Height) CenteredRect(int width, int height)
+    {
         var x = 80;
         var y = 80;
 
@@ -39,7 +50,7 @@ public static class Screenshotter
             y = work.Top + ((work.Height - height) / 2);
         }
 
-        PInvoke.MoveWindow(Handle(window), x, y, width, height, bRepaint: true);
+        return (x, y, width, height);
     }
 
     /// <summary>Capture the window to a PNG: trim the invisible borders + discolored edge ring, round the corners.</summary>

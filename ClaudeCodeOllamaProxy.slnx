@@ -1,6 +1,7 @@
 <Solution>
   <!-- The WinUI app (ClaudeCodeOllamaProxy.UI) only builds for x64/x86/ARM64 (no "Any CPU"), so the
-       solution exposes those platforms. The two .NET projects are Any CPU and map automatically. -->
+       solution exposes those platforms. The Console/Core projects are Any CPU and map automatically; the
+       UI test project is x64-only (it references the WinUI app, which is x64 on this dev machine). -->
   <Configurations>
     <Platform Name="x64" />
     <Platform Name="x86" />
@@ -20,5 +21,9 @@
     <Platform Solution="*|x64" Project="x64" />
     <Platform Solution="*|x86" Project="x86" />
   </Project>
-  <Project Path="ClaudeCodeOllamaProxy.UI.Tests/ClaudeCodeOllamaProxy.UI.Tests.csproj" />
+  <Project Path="ClaudeCodeOllamaProxy.UI.Tests/ClaudeCodeOllamaProxy.UI.Tests.csproj">
+    <Platform Project="x64" />
+    <Build Solution="*|ARM64" Project="false" />
+    <Build Solution="*|x86" Project="false" />
+  </Project>
 </Solution>
