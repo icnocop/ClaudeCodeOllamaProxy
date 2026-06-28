@@ -38,11 +38,8 @@ public static class ThemeHelper
         _ => IsSystemAppsLight(),
     };
 
-    /// <summary>Tray-icon asset URI: a dark glyph on a light theme, a light glyph on a dark theme.</summary>
-    public static string TrayIconUri(string setting) =>
-        IsEffectivelyLight(setting)
-            ? "ms-appx:///Assets/TrayIcon-Light.ico"
-            : "ms-appx:///Assets/TrayIcon-Dark.ico";
+    /// <summary>Tray-icon asset URI — the brand-orange app icon, the same in every theme.</summary>
+    public static string TrayIconUri() => "ms-appx:///Assets/AppIcon.ico";
 
     private static bool IsSystemAppsLight() => ReadPersonalizeFlag("AppsUseLightTheme");
 

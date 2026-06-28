@@ -19,9 +19,9 @@
             SelectionChanged="Nav_SelectionChanged"
             Loaded="Nav_Loaded">
             <muxc:NavigationView.MenuItems>
-                <muxc:NavigationViewItem Content="Home" Tag="home" AutomationProperties.AutomationId="NavHome">
+                <muxc:NavigationViewItem x:Name="HomeNavItem" Content="Home" Tag="home" AutomationProperties.AutomationId="NavHome" Loaded="HomeNavItem_Loaded">
                     <muxc:NavigationViewItem.Icon>
-                        <SymbolIcon Symbol="Home" />
+                        <SymbolIcon x:Name="HomeSymbolIcon" Symbol="Home" />
                     </muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
                 <muxc:NavigationViewItem Content="Logs" Tag="logs" AutomationProperties.AutomationId="NavLogs">

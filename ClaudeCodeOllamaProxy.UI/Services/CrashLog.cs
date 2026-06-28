@@ -20,21 +20,26 @@ internal static class CrashLog
     /// <summary>Full path of the crash log file (shown to the user in the dialog).</summary>
     public static string FilePath => LogPath;
 
-    /// <summary>Record an unhandled exception: append it to the crash log and notify the user.</summary>
-    public static void Report(string source, Exception? exception)
+    /// <summary>
+    /// Record an unhandled exception: append it to the crash log and notify the user. <paramref name="message"/>
+    /// carries the WinUI <c>UnhandledExceptionEventArgs.Message</c>, which often holds the real error text even
+    /// when the reconstructed <paramref name="exception"/> has no stack trace.
+    /// </summary>
+    public static void Report(string source, Exception? exception, string? message = null)
     {
-        AppendToFile(source, exception);
-        ShowDialog(exception);
+        AppendToFile(source, exception, message);
+        ShowDialog(exception, message);
     }
 
-    private static void AppendToFile(string source, Exception? exception)
+    private static void AppendToFile(string source, Exception? exception, string? message)
     {
         try
         {
             Directory.CreateDirectory(SettingsStore.DataDirectory);
             var entry =
                 $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {source}" + Environment.NewLine +
-                (exception?.ToString() ?? "(no exception object)") + Environment.NewLine +
+                (string.IsNullOrEmpty(message) ? "" : $"Message: {message}" + Environment.NewLine) +
+                Describe(exception) + Environment.NewLine +
                 new string('-', 80) + Environment.NewLine;
 
             lock (Gate)
@@ -46,13 +51,33 @@ internal static class CrashLog
         }
     }
 
-    private static void ShowDialog(Exception? exception)
+    /// <summary>Render an exception and its inner chain, including the HRESULT (the useful part of a
+    /// WinUI/COM "stowed" exception whose .ToString() is otherwise bare).</summary>
+    private static string Describe(Exception? exception)
+    {
+        if (exception is null)
+            return "(no exception object)";
+
+        var sb = new System.Text.StringBuilder();
+        for (var ex = exception; ex is not null; ex = ex.InnerException)
+        {
+            sb.AppendLine($"{ex.GetType().FullName} (HRESULT 0x{ex.HResult:X8}): {ex.Message}");
+            if (!string.IsNullOrEmpty(ex.StackTrace))
+                sb.AppendLine(ex.StackTrace);
+            if (ex.InnerException is not null)
+                sb.AppendLine("--- inner exception ---");
+        }
+        return sb.ToString().TrimEnd();
+    }
+
+    private static void ShowDialog(Exception? exception, string? message)
     {
         try
         {
+            var detail = exception is not null ? $"{exception.GetType().Name}: {exception.Message}" : message;
             var text =
                 "Claude Code Ollama Proxy hit an unexpected error." + Environment.NewLine + Environment.NewLine +
-                $"{exception?.GetType().Name}: {exception?.Message}" + Environment.NewLine + Environment.NewLine +
+                detail + Environment.NewLine + Environment.NewLine +
                 "Details were written to:" + Environment.NewLine + LogPath;
 
             PInvoke.MessageBox(HWND.Null, text, "Claude Code Ollama Proxy", MESSAGEBOX_STYLE.MB_ICONERROR);

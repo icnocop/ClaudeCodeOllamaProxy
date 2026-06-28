@@ -12,19 +12,21 @@ namespace ClaudeCodeOllamaProxy.Services;
 public sealed class ClaudeSessionFactory
 {
     private readonly ProxyOptions _options;
-    private readonly ILoggerFactory _loggerFactory;
+    private readonly ILoggerFactory _sdkLoggerFactory;
     private readonly ILogger _cliLogger;
     private readonly ILogger<ClaudeSessionFactory> _logger;
 
     public ClaudeSessionFactory(IOptions<ProxyOptions> options, ILoggerFactory loggerFactory)
     {
         _options = options.Value;
-        _loggerFactory = loggerFactory;
+        // The SDK runs a background message-reader loop that logs through this factory; wrap it so a
+        // log emitted after the host's providers are disposed (stop/restart) can't crash the process.
+        _sdkLoggerFactory = new FaultTolerantLoggerFactory(loggerFactory);
         _cliLogger = loggerFactory.CreateLogger("ClaudeCodeOllamaProxy.ClaudeCli");
         _logger = loggerFactory.CreateLogger<ClaudeSessionFactory>();
     }
 
-    public ClaudeAgentClient CreateClient(ClaudeAgentOptions options) => new(options, _loggerFactory);
+    public ClaudeAgentClient CreateClient(ClaudeAgentOptions options) => new(options, _sdkLoggerFactory);
 
     // NOTE: the system prompt is intentionally NOT a parameter here — it must never become a CLI
     // argument (Copilot's Agent-mode system prompt is tens of KB and overflows the Windows

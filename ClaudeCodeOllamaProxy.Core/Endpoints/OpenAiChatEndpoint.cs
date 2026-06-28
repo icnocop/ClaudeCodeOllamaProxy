@@ -231,11 +231,5 @@ public static class OpenAiChatEndpoint
             yield return OpenAiMessageMapper.TextOf(msg.Content);
     }
 
-    private static void StartSse(HttpContext ctx)
-    {
-        ctx.Response.StatusCode = StatusCodes.Status200OK;
-        ctx.Response.ContentType = "text/event-stream";
-        ctx.Response.Headers.CacheControl = "no-cache";
-        ctx.Response.Headers["X-Accel-Buffering"] = "no";
-    }
+    private static void StartSse(HttpContext ctx) => SseWriter.Start(ctx.Response);
 }

@@ -94,19 +94,13 @@ public sealed class ToolBridge : IAsyncDisposable
 
         bridge._logger.LogDebug("Bridge starting: model={Model}, effort={Effort}, tools={ToolCount}, conv={Conv}.",
             model, effort, tools.Count, conversationKey);
-        bridge._logger.LogDebug("Bridge system prompt: {SystemPrompt}", Truncate(systemPrompt));
-        bridge._logger.LogDebug("Bridge prompt: {Prompt}", Truncate(prompt));
+        bridge._logger.LogDebug("Bridge system prompt: {SystemPrompt}", LogText.Truncate(systemPrompt));
+        bridge._logger.LogDebug("Bridge prompt: {Prompt}", LogText.Truncate(prompt));
 
         bridge._client = sessionFactory.CreateClient(options);
         bridge._session = await bridge._client.CreateSessionAsync(ct);
         bridge._pumpTask = bridge.PumpAsync(fullPrompt);
         return bridge;
-    }
-
-    private static string Truncate(string? s, int max = 4000)
-    {
-        if (string.IsNullOrEmpty(s)) return "";
-        return s.Length <= max ? s : s[..max] + $"… (+{s.Length - max} chars)";
     }
 
     /// <summary>MCP tool handler: surface the call to Copilot and block until its result arrives.</summary>
@@ -117,7 +111,7 @@ public sealed class ToolBridge : IAsyncDisposable
         _registry.RegisterPending(callId, this, completion);
 
         _logger.LogInformation("Claude invoked bridged tool {Tool} -> emitting tool_call {CallId}.", toolName, callId);
-        _logger.LogDebug("Tool {Tool} args {CallId}: {Args}", toolName, callId, Truncate(JsonDefaults.Prettify(args.GetRawText())));
+        _logger.LogDebug("Tool {Tool} args {CallId}: {Args}", toolName, callId, LogText.Truncate(JsonDefaults.Prettify(args.GetRawText())));
         await _events.Writer.WriteAsync(new ToolCallEvent(callId, toolName, args.GetRawText()), _sessionCts.Token);
 
         try

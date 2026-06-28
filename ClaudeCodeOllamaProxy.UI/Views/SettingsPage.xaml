@@ -144,7 +144,7 @@
                     <FontIcon Grid.Column="0" Glyph="&#xE771;" VerticalAlignment="Center" />
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                         <TextBlock Text="App theme" />
-                        <TextBlock Text="Choose how the app and tray icon follow light or dark mode."
+                        <TextBlock Text="Choose how the app follows light or dark mode."
                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                    Style="{ThemeResource CaptionTextBlockStyle}" TextWrapping="Wrap" />
                     </StackPanel>

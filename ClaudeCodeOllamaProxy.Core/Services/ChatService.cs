@@ -42,8 +42,8 @@ public sealed class ChatService
         var prompt = flat.Prompt + _imageMaterializer.Materialize(flat.Images);
         var fullPrompt = OpenAiMessageMapper.CombineSystemAndPrompt(flat.SystemPrompt, prompt);
 
-        _logger.LogDebug("Ask system prompt: {SystemPrompt}", Truncate(flat.SystemPrompt));
-        _logger.LogDebug("Ask prompt: {Prompt}", Truncate(prompt));
+        _logger.LogDebug("Ask system prompt: {SystemPrompt}", LogText.Truncate(flat.SystemPrompt));
+        _logger.LogDebug("Ask prompt: {Prompt}", LogText.Truncate(prompt));
 
         var options = _sessionFactory.BuildOptions(
             model: baseModel,
@@ -61,10 +61,7 @@ public sealed class ChatService
     private async Task RunStreamingAsync(
         HttpContext ctx, OpenAiChatRequest request, string model, string prompt, ClaudeAgentOptions options, CancellationToken ct)
     {
-        ctx.Response.StatusCode = StatusCodes.Status200OK;
-        ctx.Response.ContentType = "text/event-stream";
-        ctx.Response.Headers.CacheControl = "no-cache";
-        ctx.Response.Headers["X-Accel-Buffering"] = "no";
+        SseWriter.Start(ctx.Response);
 
         var writer = new SseWriter(ctx.Response, NewId(), model, Now());
 
@@ -143,10 +140,4 @@ public sealed class ChatService
 
     internal static string NewId() => "chatcmpl-" + Guid.NewGuid().ToString("N");
     internal static long Now() => DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-
-    private static string Truncate(string? s, int max = 4000)
-    {
-        if (string.IsNullOrEmpty(s)) return "";
-        return s.Length <= max ? s : s[..max] + $"… (+{s.Length - max} chars)";
-    }
 }

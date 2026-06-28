@@ -7,3 +7,5 @@ GetWindowThreadProcessId
 GetCurrentThreadId
 AttachThreadInput
 MessageBox
+DestroyIcon
+SendMessage

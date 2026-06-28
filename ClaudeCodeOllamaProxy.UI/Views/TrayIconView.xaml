@@ -19,6 +19,10 @@
                 <MenuFlyoutItem x:Name="OpenItem" Text="Open" Click="OpenItem_Click" />
                 <MenuFlyoutItem x:Name="CopyUrlItem" Text="Copy URL" Click="CopyUrlItem_Click" />
                 <MenuFlyoutSeparator />
+                <MenuFlyoutItem x:Name="StartItem" Text="Start" Click="StartItem_Click" />
+                <MenuFlyoutItem x:Name="StopItem" Text="Stop" Click="StopItem_Click" />
+                <MenuFlyoutItem x:Name="RestartItem" Text="Restart" Click="RestartItem_Click" />
+                <MenuFlyoutSeparator />
                 <MenuFlyoutItem x:Name="QuitItem" Text="Quit" Click="QuitItem_Click" />
             </MenuFlyout>
         </tb:TaskbarIcon.ContextFlyout>

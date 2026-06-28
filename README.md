@@ -1,7 +1,7 @@
 # Claude Code Ollama Proxy
 
 Use **Claude Code** inside Visual Studio / VS Code **GitHub Copilot Chat** — including Copilot's native
-diff / Accept-Reject UI — with no extra extension. The app runs a local server that speaks the
+diff / Accept-Reject UI — with no extra extension. The app runs a local server that implements the
 **Ollama API** and drives your existing **Claude Code CLI** login.
 
 <p align="center">
@@ -26,9 +26,6 @@ flowchart LR
 3. In Copilot Chat, add an **Ollama** provider pointed at `http://127.0.0.1:11434`, then pick a
    `claude-*` model. Switch to **Agent** mode to let Claude edit files.
 
-The tray app lets you start/stop the proxy, view live logs, change the port and theme, and run at
-startup. Closing the window keeps it running in the tray; use **Quit** to stop.
-
 <details>
 <summary>📷 More screenshots</summary>
 
@@ -45,6 +42,36 @@ startup. Closing the window keeps it running in the tray; use **Quit** to stop.
 </picture>
 
 </details>
+
+## Features
+
+**Main window**
+
+- 🟢 **Home** — start / stop / restart the proxy, see live status, and copy the listening URL.
+- 📜 **Logs** — watch the proxy's live log output in-app.
+- ⚙️ **Settings** — change the port, pick a theme (System / Light / Dark), run at startup, run as
+  administrator, choose whether closing minimizes to tray, and reset the window size or all settings.
+- ℹ️ **About** — version info and a link to the project page.
+
+**System-tray icon**
+
+- 🎨 **Live status glyph** — the tray (and taskbar / title-bar) icon shows a status dot that changes
+  color with the proxy state.
+- 💬 **Tooltip** — hover to see the running state and listening URL.
+- 🖱️ **Single click** — opens the main window.
+
+**Tray right-click menu**
+
+- 🪟 **Open** — show the main window.
+- 📋 **Copy URL** — copy the current listening URL (shown inline in the menu).
+- ▶️ **Start** / ⏹️ **Stop** / 🔄 **Restart** — control the proxy without opening the window
+  (enabled to match the current state).
+- ❌ **Quit** — fully exit the app (closing the window keeps it running in the tray).
+
+**Reliability**
+
+- 🛡️ Fault-tolerant logging and global exception handlers with crash logging keep the app running and
+  capture failures for diagnosis.
 
 ## Documentation
 

@@ -38,7 +38,7 @@ public sealed class ModelCatalog
     private static readonly string[] ValidEfforts = { "low", "medium", "high", "xhigh", "max" };
 
     private readonly ProxyOptions _options;
-    private readonly ILoggerFactory _loggerFactory;
+    private readonly ClaudeSessionFactory _sessionFactory;
     private readonly ILogger<ModelCatalog> _logger;
     private readonly SemaphoreSlim _gate = new(1, 1);
 
@@ -47,10 +47,10 @@ public sealed class ModelCatalog
     // The base model the CLI marks as default (its initialize "default" entry); null ⇒ first model.
     private string? _defaultBaseId;
 
-    public ModelCatalog(IOptions<ProxyOptions> options, ILoggerFactory loggerFactory)
+    public ModelCatalog(IOptions<ProxyOptions> options, ILoggerFactory loggerFactory, ClaudeSessionFactory sessionFactory)
     {
         _options = options.Value;
-        _loggerFactory = loggerFactory;
+        _sessionFactory = sessionFactory;
         _logger = loggerFactory.CreateLogger<ModelCatalog>();
     }
 
@@ -278,7 +278,10 @@ public sealed class ModelCatalog
 
         try
         {
-            await using var client = new ClaudeAgentClient(clientOptions, _loggerFactory);
+            // Build through the session factory so the SDK gets the fault-tolerant logger factory — its
+            // background message-reader loop must not crash the host by logging after the providers are
+            // disposed during a stop/restart (see ClaudeSessionFactory / FaultTolerantLoggerFactory).
+            await using var client = _sessionFactory.CreateClient(clientOptions);
             await using var session = await client.CreateSessionAsync(ct);
 
             // Primary source: the initialize payload captured above (the handshake is complete by the
