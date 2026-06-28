@@ -30,20 +30,19 @@
                                        Style="{ThemeResource CaptionTextBlockStyle}" TextWrapping="Wrap" />
                         </StackPanel>
                         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <!-- ValidationMode=InvalidInputOverwritten makes the NumberBox enforce Minimum/Maximum:
+                                 out-of-range numbers are clamped and empty/non-numeric input reverts to the last
+                                 valid value, so the port can never be 0, negative, >65535, or empty. -->
                             <NumberBox x:Name="PortBox"
                                        Minimum="1" Maximum="65535"
                                        SpinButtonPlacementMode="Inline"
-                                       ValidationMode="Disabled"
+                                       ValidationMode="InvalidInputOverwritten"
                                        ValueChanged="PortBox_ValueChanged" MinWidth="160" />
                             <Button x:Name="PortDefaultButton" Content="Default"
                                     Click="PortDefaultButton_Click"
                                     ToolTipService.ToolTip="Set to the default Ollama port (11434)" />
                         </StackPanel>
                     </Grid>
-                    <TextBlock x:Name="PortError"
-                               Foreground="{ThemeResource SystemFillColorCriticalBrush}"
-                               Style="{ThemeResource CaptionTextBlockStyle}"
-                               TextWrapping="Wrap" Visibility="Collapsed" />
                     <InfoBar x:Name="PortRestartBar" IsOpen="False" IsClosable="False"
                              Severity="Informational"
                              Message="The proxy is still using the previous port. Restart to apply the change.">

@@ -1,0 +1,8 @@
+IsIconic
+ShowWindow
+GetForegroundWindow
+SetForegroundWindow
+BringWindowToTop
+GetWindowThreadProcessId
+GetCurrentThreadId
+AttachThreadInput
