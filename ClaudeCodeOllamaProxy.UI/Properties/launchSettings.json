@@ -1,0 +1,7 @@
+{
+  "profiles": {
+    "ClaudeCodeOllamaProxy.UI": {
+      "commandName": "Project"
+    }
+  }
+}
