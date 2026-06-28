@@ -20,6 +20,16 @@ public static class Program
     [STAThread]
     private static void Main(string[] args)
     {
+        // Record any unhandled exception (incl. before the XAML layer is up, e.g. during the elevated
+        // relaunch) instead of losing it to WinUI's opaque stowed-exception crash (0xC000027B).
+        AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+            CrashLog.Report("AppDomain.UnhandledException", e.ExceptionObject as Exception);
+        TaskScheduler.UnobservedTaskException += (_, e) =>
+        {
+            CrashLog.Report("TaskScheduler.UnobservedTaskException", e.Exception);
+            e.SetObserved();
+        };
+
         WinRT.ComWrappersSupport.InitializeComWrappers();
 
         // If configured to run as administrator and we're not elevated yet, relaunch elevated and exit.

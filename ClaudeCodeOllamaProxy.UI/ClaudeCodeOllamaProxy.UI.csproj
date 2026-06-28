@@ -6,6 +6,9 @@
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <RootNamespace>ClaudeCodeOllamaProxy.UI</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Embed the brand icon into the .exe so Explorer / the taskbar show it (separate from the
+         in-app window icon, which MainWindow sets via AppWindow.SetIcon). -->
+    <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
     <Platforms>x86;x64;ARM64</Platforms>
     <RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
     <UseWinUI>true</UseWinUI>

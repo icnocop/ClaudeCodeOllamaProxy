@@ -6,3 +6,4 @@ BringWindowToTop
 GetWindowThreadProcessId
 GetCurrentThreadId
 AttachThreadInput
+MessageBox
