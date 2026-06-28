@@ -21,6 +21,7 @@ public sealed partial class SettingsPage : Page
         PortBox.Value = App.Settings.Port;
         SelectThemeItem(App.Settings.Theme);
         MinimizeToTrayToggle.IsOn = App.Settings.MinimizeToTrayOnClose;
+        StartMinimizedToggle.IsOn = App.Settings.StartMinimizedToTray;
 
         AdminToggle.IsOn = App.Settings.RunAsAdmin;
         var elevated = ElevationHelper.IsElevated();
@@ -72,6 +73,14 @@ public sealed partial class SettingsPage : Page
             return;
 
         App.Settings.MinimizeToTrayOnClose = MinimizeToTrayToggle.IsOn;
+    }
+
+    private void StartMinimizedToggle_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_loading)
+            return;
+
+        App.Settings.StartMinimizedToTray = StartMinimizedToggle.IsOn;
     }
 
     private async void ResetButton_Click(object sender, RoutedEventArgs e)

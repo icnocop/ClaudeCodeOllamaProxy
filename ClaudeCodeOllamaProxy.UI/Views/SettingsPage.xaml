@@ -9,7 +9,21 @@
 
     <ScrollViewer Padding="32,24">
         <StackPanel Spacing="16" MaxWidth="720" HorizontalAlignment="Left">
-            <TextBlock Text="Settings" Style="{ThemeResource TitleTextBlockStyle}" />
+            <!-- Header row: title on the left, "Reset to default settings" on the right. -->
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="Settings" Style="{ThemeResource TitleTextBlockStyle}"
+                           VerticalAlignment="Center" />
+                <Button Grid.Column="1" x:Name="ResetButton" Click="ResetButton_Click" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon Glyph="&#xE777;" FontSize="14" />
+                        <TextBlock Text="Reset to default settings" />
+                    </StackPanel>
+                </Button>
+            </Grid>
 
             <!-- Port -->
             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
@@ -97,6 +111,28 @@
                 </Grid>
             </Border>
 
+            <!-- Start minimized to tray -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1" CornerRadius="8" Padding="16,12">
+                <Grid ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <FontIcon Grid.Column="0" Glyph="&#xE921;" VerticalAlignment="Center" />
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="Start minimized to tray" />
+                        <TextBlock Text="When on, the app starts hidden in the system tray with no window. The proxy still runs; open the window from the tray icon."
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   Style="{ThemeResource CaptionTextBlockStyle}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <ToggleSwitch x:Name="StartMinimizedToggle" Grid.Column="2"
+                                  Toggled="StartMinimizedToggle_Toggled" />
+                </Grid>
+            </Border>
+
             <!-- Run as administrator -->
             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
@@ -179,13 +215,6 @@
                 </Grid>
             </Border>
 
-            <!-- Reset -->
-            <Button x:Name="ResetButton" Click="ResetButton_Click" HorizontalAlignment="Left">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                    <FontIcon Glyph="&#xE777;" FontSize="14" />
-                    <TextBlock Text="Reset to default settings" />
-                </StackPanel>
-            </Button>
         </StackPanel>
     </ScrollViewer>
 </Page>

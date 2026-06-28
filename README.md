@@ -50,7 +50,8 @@ flowchart LR
 - 🟢 **Home** — start / stop / restart the proxy, see live status, and copy the listening URL.
 - 📜 **Logs** — watch the proxy's live log output in-app.
 - ⚙️ **Settings** — change the port, pick a theme (System / Light / Dark), run at startup, run as
-  administrator, choose whether closing minimizes to tray, and reset the window size or all settings.
+  administrator, choose whether closing minimizes to tray, start minimized to the tray, and reset the
+  window size or all settings.
 - ℹ️ **About** — version info and a link to the project page.
 
 **System-tray icon**

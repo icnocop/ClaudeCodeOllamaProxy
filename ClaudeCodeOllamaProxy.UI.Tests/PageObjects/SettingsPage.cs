@@ -16,6 +16,9 @@ public sealed class SettingsPage(Window window) : PageObject(window)
     /// <summary>The "Minimize to system tray on close" toggle.</summary>
     public AutomationElement MinimizeToTrayToggle => Element("MinimizeToTrayToggle");
 
+    /// <summary>The "Start minimized to tray" toggle.</summary>
+    public AutomationElement StartMinimizedToggle => Element("StartMinimizedToggle");
+
     /// <summary>Select a theme: "System default", "Light", or "Dark".</summary>
     public void SetTheme(string itemText) => ThemeCombo.Select(itemText);
 }
