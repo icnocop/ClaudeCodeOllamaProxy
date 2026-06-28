@@ -1,5 +1,4 @@
 using ClaudeCodeOllamaProxy.UI.Services;
-using ClaudeCodeOllamaProxy.UI.ViewModels;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
@@ -8,7 +7,6 @@ namespace ClaudeCodeOllamaProxy.UI.Views;
 
 public sealed partial class SettingsPage : Page
 {
-    private readonly PortViewModel _portVm = new();
     private bool _loading;
 
     public SettingsPage() => InitializeComponent();
@@ -120,23 +118,21 @@ public sealed partial class SettingsPage : Page
         if (_loading)
             return;
 
-        // Validate via the MVVM validator (range + numeric); show the error and skip persisting if invalid.
-        _portVm.Port = args.NewValue;
-        if (_portVm.HasErrors)
+        // Clearing the box makes Value NaN before InvalidInputOverwritten reverts the text on focus loss;
+        // (int)NaN is garbage (e.g. int.MinValue), which would persist and later bind a random port. Restore
+        // the last valid port and skip persisting until the control overwrites the empty input itself.
+        if (double.IsNaN(args.NewValue))
         {
-            PortError.Text = _portVm.FirstError;
-            PortError.Visibility = Visibility.Visible;
+            PortBox.Value = App.Settings.Port;
             return;
         }
 
-        PortError.Visibility = Visibility.Collapsed;
-
+        // InvalidInputOverwritten + Minimum/Maximum guarantees any other value is an in-range number, so just
+        // persist it. The host stays on its current port until an explicit restart.
         var port = (int)args.NewValue;
-        if (port == App.Settings.Port)
-            return;
+        if (port != App.Settings.Port)
+            App.Settings.Port = port;
 
-        // Persist the new port but keep the host on its current port until the user restarts explicitly.
-        App.Settings.Port = port;
         UpdatePortRestartBar();
     }
 

@@ -102,6 +102,10 @@ public partial class App : Application
 
         MainWindow.Show();
         MainWindow.Activate();
+
+        // Activate() alone doesn't pull the window in front of other apps' windows (or un-minimize it),
+        // so force it to the foreground.
+        WindowActivationHelper.BringToFront(MainWindow);
     });
 
     /// <summary>Copy the current listening URL to the clipboard (on the UI thread).</summary>

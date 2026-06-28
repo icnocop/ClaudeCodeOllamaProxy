@@ -6,6 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>preview</LangVersion>
     <IsPackable>false</IsPackable>
+    <!-- CsWin32 generates some members that require unsafe code (and we call void* APIs directly). -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- Screenshot generation drives the real GUI; keep tests serial. -->
     <TestParallelization>false</TestParallelization>
   </PropertyGroup>
@@ -21,6 +23,9 @@
     <PackageReference Include="FlaUI.UIA3" Version="4.0.0" />
     <!-- Override FlaUI's transitive System.Drawing.Common 5.0.2 (NU1904 vulnerability) with a safe version. -->
     <PackageReference Include="System.Drawing.Common" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.298">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
   </ItemGroup>
 
 </Project>

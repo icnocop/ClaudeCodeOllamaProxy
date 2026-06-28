@@ -1,0 +1,4 @@
+MoveWindow
+DwmGetWindowAttribute
+SystemParametersInfo
+RECT
