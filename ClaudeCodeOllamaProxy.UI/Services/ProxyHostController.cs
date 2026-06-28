@@ -1,7 +1,6 @@
 using System.Collections.ObjectModel;
 using ClaudeCodeOllamaProxy.UI.Logging;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
 

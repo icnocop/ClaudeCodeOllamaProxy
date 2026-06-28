@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.IO;
 using FlaUI.Core;
 using FlaUI.Core.AutomationElements;
 using FlaUI.Core.Tools;
