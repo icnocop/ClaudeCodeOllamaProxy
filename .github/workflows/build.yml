@@ -32,8 +32,11 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
+      # Restore for the same platform the build uses (x64). The UI test project is excluded from the
+      # x86/ARM64 solution configurations, so a default-platform restore would skip it and the x64 build
+      # below (which includes it) would then fail with NETSDK1004 (missing project.assets.json).
       - name: Restore
-        run: dotnet restore ClaudeCodeOllamaProxy.slnx
+        run: dotnet restore ClaudeCodeOllamaProxy.slnx -p:Platform=x64
 
       # Fast whole-solution compile check before the longer publish steps.
       - name: Build (x64)

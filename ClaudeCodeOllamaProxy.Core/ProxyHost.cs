@@ -7,14 +7,8 @@ using ClaudeCodeOllamaProxy.Infrastructure;
 using ClaudeCodeOllamaProxy.Models;
 using ClaudeCodeOllamaProxy.Service.Logging;
 using ClaudeCodeOllamaProxy.Services;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace ClaudeCodeOllamaProxy;
 

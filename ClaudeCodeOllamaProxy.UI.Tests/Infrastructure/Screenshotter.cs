@@ -2,7 +2,6 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using FlaUI.Core.AutomationElements;
-using FlaUI.Core.Capturing;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.Graphics.Dwm;

@@ -1,4 +1,3 @@
-using System.IO;
 using ClaudeCodeOllamaProxy.UI.Tests.Infrastructure;
 using ClaudeCodeOllamaProxy.UI.Tests.PageObjects;
 using Xunit;

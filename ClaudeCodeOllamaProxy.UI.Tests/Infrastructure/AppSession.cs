@@ -1,4 +1,3 @@
-using System.IO;
 using System.Text.Json;
 using ClaudeCodeOllamaProxy.UI.Services;
 using ClaudeCodeOllamaProxy.UI.Tests.PageObjects;
