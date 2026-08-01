@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 `vYYYY.MM.DD.<build>` scheme produced by the release workflow, and each released version links to its
 GitHub release.
 
-## [Unreleased]
+## [v2026.08.01.10] - 2026-08-01
 
 ### Added
 
@@ -109,7 +109,7 @@ GitHub release.
   Visual Studio / VS Code GitHub Copilot Chat's Bring Your Own Model Ollama provider can use Claude Code — including
   Copilot's native in-chat diff/accept-reject UI via the tool-call bridge.
 
-[Unreleased]: https://github.com/icnocop/ClaudeCodeOllamaProxy/compare/v2026.06.28.9...HEAD
+[v2026.08.01.10]: https://github.com/icnocop/ClaudeCodeOllamaProxy/compare/v2026.06.28.9...v2026.08.01.10
 [v2026.06.28.9]: https://github.com/icnocop/ClaudeCodeOllamaProxy/releases/tag/v2026.06.28.9
 [v2026.06.28.2]: https://github.com/icnocop/ClaudeCodeOllamaProxy/releases/tag/v2026.06.28.2
 [v2026.06.28.1]: https://github.com/icnocop/ClaudeCodeOllamaProxy/releases/tag/v2026.06.28.1
