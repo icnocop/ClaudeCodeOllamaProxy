@@ -14,5 +14,8 @@
   (tool-loop patterns), [dliedke/ClaudeCodeExtension](https://github.com/dliedke/ClaudeCodeExtension)
   (the extension this obviates)
 - Copilot / Ollama protocol: [microsoft/vscode-copilot-chat](https://github.com/microsoft/vscode-copilot-chat),
-  [VS Code BYOK docs](https://code.visualstudio.com/docs/agent-customization/language-models),
+  [VS Code language models (BYOK)](https://code.visualstudio.com/docs/copilot/customization/language-models),
   [Ollama API](https://github.com/ollama/ollama/blob/main/docs/api.md)
+- Copilot BYOM / GitHub accounts in Visual Studio:
+  [Using AI models in Copilot Chat](https://learn.microsoft.com/en-us/visualstudio/ide/copilot-select-add-models?view=visualstudio),
+  [Switch the active GitHub account](https://learn.microsoft.com/en-us/visualstudio/ide/work-with-github-accounts?view=visualstudio#switch-the-active-account)

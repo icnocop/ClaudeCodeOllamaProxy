@@ -9,6 +9,12 @@ namespace ClaudeCodeOllamaProxy.UI.Services;
 /// circle overlaid in the bottom-right corner. The circle color reflects the proxy host's
 /// <see cref="ProxyState"/> — soft/muted greens, grays, and ambers rather than saturated primaries.
 /// <para>
+/// When an update is available, a second marker — a blue circle with a white download arrow — is drawn
+/// in the <em>top-left</em> corner. Opposite corners so the two indicators never overlap or get confused
+/// for one another, and a hue unused by any <see cref="ProxyState"/>. This is the only cue the user gets
+/// while the app is hidden in the tray, so it's on the tray *and* taskbar icon (both come from here).
+/// </para>
+/// <para>
 /// Two outputs are produced from the same composition: a single <c>HICON</c> for the system-tray icon
 /// (<see cref="CreateIcon"/>), and a multi-resolution <c>.ico</c> file for the window/taskbar icon
 /// (<see cref="EnsureIconFile"/>). The multi-resolution file is what keeps the title-bar and taskbar
@@ -27,16 +33,16 @@ public static class StatusIconRenderer
     private static readonly int[] FrameSizes = [16, 20, 24, 32, 40, 48, 64, 256];
 
     private static readonly string IconDir = Path.Combine(Path.GetTempPath(), "ClaudeCodeOllamaProxy.UI");
-    private static readonly HashSet<ProxyState> WrittenThisRun = [];
+    private static readonly HashSet<(ProxyState State, bool UpdateAvailable)> WrittenThisRun = [];
     private static readonly object FileLock = new();
 
     /// <summary>
     /// Builds the composed tray icon for <paramref name="state"/>. The returned <c>HICON</c> must be
     /// released with <c>DestroyIcon</c> once it is no longer the icon shown by the tray.
     /// </summary>
-    public static IntPtr CreateIcon(ProxyState state)
+    public static IntPtr CreateIcon(ProxyState state, bool updateAvailable = false)
     {
-        using var bmp = RenderFrame(state, TrayIconSize);
+        using var bmp = RenderFrame(state, TrayIconSize, updateAvailable);
         return bmp.GetHicon();
     }
 
@@ -67,15 +73,16 @@ public static class StatusIconRenderer
     /// folder) and returns its path, suitable for <c>AppWindow.SetIcon(path)</c>. Written once per state
     /// per process run; the file is not held open after <c>SetIcon</c> reads it.
     /// </summary>
-    public static string EnsureIconFile(ProxyState state)
+    public static string EnsureIconFile(ProxyState state, bool updateAvailable = false)
     {
-        var path = Path.Combine(IconDir, $"status-{state}.ico");
+        var suffix = updateAvailable ? "-update" : string.Empty;
+        var path = Path.Combine(IconDir, $"status-{state}{suffix}.ico");
         lock (FileLock)
         {
-            if (WrittenThisRun.Add(state) || !File.Exists(path))
+            if (WrittenThisRun.Add((state, updateAvailable)) || !File.Exists(path))
             {
                 Directory.CreateDirectory(IconDir);
-                File.WriteAllBytes(path, BuildIcoBytes(state));
+                File.WriteAllBytes(path, BuildIcoBytes(state, updateAvailable));
             }
         }
 
@@ -83,12 +90,12 @@ public static class StatusIconRenderer
     }
 
     /// <summary>Composes a multi-resolution icon (one PNG frame per <see cref="FrameSizes"/> entry).</summary>
-    private static byte[] BuildIcoBytes(ProxyState state)
+    private static byte[] BuildIcoBytes(ProxyState state, bool updateAvailable)
     {
         var frames = new List<byte[]>(FrameSizes.Length);
         foreach (var size in FrameSizes)
         {
-            using var bmp = RenderFrame(state, size);
+            using var bmp = RenderFrame(state, size, updateAvailable);
             using var ms = new MemoryStream();
             bmp.Save(ms, ImageFormat.Png);   // Vista+ icons may store PNG frames directly.
             frames.Add(ms.ToArray());
@@ -126,7 +133,7 @@ public static class StatusIconRenderer
         return output.ToArray();
     }
 
-    private static Bitmap RenderFrame(ProxyState state, int size)
+    private static Bitmap RenderFrame(ProxyState state, int size, bool updateAvailable)
     {
         var (fill, edge) = ColorsFor(state);
 
@@ -140,6 +147,9 @@ public static class StatusIconRenderer
 
             DrawBaseGlyph(g, size);
             DrawStatusCircle(g, size, fill, edge);
+
+            if (updateAvailable)
+                DrawUpdateMarker(g, size);
         }
 
         return bmp;
@@ -194,6 +204,52 @@ public static class StatusIconRenderer
 
         using var edgePen = new Pen(edge, Math.Max(1f, size * 0.04f));
         g.DrawEllipse(edgePen, innerX, innerY, innerD, innerD);
+    }
+
+    /// <summary>
+    /// The "update available" marker: a blue disc in the top-left (opposite the status circle) carrying a
+    /// white download arrow. The arrow is drawn as plain shapes rather than text — a glyph font would be
+    /// illegible at the 16px frames, and the shapes scale exactly with the frame.
+    /// </summary>
+    private static void DrawUpdateMarker(Graphics g, int size)
+    {
+        var diameter = size * 0.55f;   // same footprint as the status circle, for visual balance
+
+        using var ringBrush = new SolidBrush(StatusPalette.Ring.ToDrawing());
+        g.FillEllipse(ringBrush, 0f, 0f, diameter, diameter);
+
+        var inset = Math.Max(1f, size * 0.05f);
+        var innerD = diameter - (inset * 2f);
+
+        using var fillBrush = new SolidBrush(StatusPalette.UpdateFill.ToDrawing());
+        g.FillEllipse(fillBrush, inset, inset, innerD, innerD);
+
+        using var edgePen = new Pen(StatusPalette.UpdateEdge.ToDrawing(), Math.Max(1f, size * 0.04f));
+        g.DrawEllipse(edgePen, inset, inset, innerD, innerD);
+
+        // A downward arrow inside the disc. Below ~24px the head alone reads better than head + stem, so
+        // the stem is dropped rather than smeared into a single gray pixel.
+        var centerX = inset + (innerD / 2f);
+        var centerY = inset + (innerD / 2f);
+        var arrow = innerD * 0.52f;
+
+        using var arrowBrush = new SolidBrush(Color.White);
+        g.FillPolygon(arrowBrush,
+        [
+            new PointF(centerX - (arrow / 2f), centerY - (arrow * 0.10f)),
+            new PointF(centerX + (arrow / 2f), centerY - (arrow * 0.10f)),
+            new PointF(centerX, centerY + (arrow * 0.45f)),
+        ]);
+
+        if (size >= 24)
+        {
+            var stemWidth = Math.Max(1f, innerD * 0.18f);
+            g.FillRectangle(arrowBrush,
+                centerX - (stemWidth / 2f),
+                centerY - (arrow * 0.50f),
+                stemWidth,
+                arrow * 0.42f);
+        }
     }
 
     private static (Color Fill, Color Edge) ColorsFor(ProxyState state)

@@ -10,6 +10,10 @@ namespace ClaudeCodeOllamaProxy.UI.Services;
 public sealed class SettingsStore
 {
     public const int DefaultPort = 11434;
+
+    /// <summary>Default proxy log verbosity — the name of a <c>Microsoft.Extensions.Logging.LogLevel</c>.</summary>
+    public const string DefaultLogLevel = "Information";
+
     public const double DefaultNavPaneLength = 150;
     public const int DefaultWindowWidth = 690;
     public const int DefaultWindowHeight = 840;
@@ -56,6 +60,10 @@ public sealed class SettingsStore
         public bool RunAsAdmin { get; set; }
         public bool MinimizeToTrayOnClose { get; set; } = true;
         public bool StartMinimizedToTray { get; set; }
+        public string LogLevel { get; set; } = DefaultLogLevel;
+        public bool ClaudeCliDebug { get; set; }
+        public bool CheckForUpdatesOnStartup { get; set; } = true;
+        public bool IncludePrereleaseUpdates { get; set; }
     }
 
     private Data _data = new();
@@ -137,6 +145,67 @@ public sealed class SettingsStore
         }
     }
 
+    /// <summary>
+    /// Proxy log verbosity, as a <c>Microsoft.Extensions.Logging.LogLevel</c> name. Applied to the host's
+    /// <c>Logging:LogLevel:Default</c> (and the Logs page's own floor) by
+    /// <see cref="ProxyHostController.ApplyLogLevel"/>, so it covers both the Logs page and the file log.
+    /// Independent of <see cref="ClaudeCliDebug"/>.
+    /// </summary>
+    public string LogLevel
+    {
+        get => _data.LogLevel;
+        set
+        {
+            if (_data.LogLevel == value)
+                return;
+            _data.LogLevel = value;
+            Save();
+        }
+    }
+
+    /// <summary>When true, the claude CLI is invoked with <c>--debug</c>. Independent of <see cref="LogLevel"/>.</summary>
+    public bool ClaudeCliDebug
+    {
+        get => _data.ClaudeCliDebug;
+        set
+        {
+            if (_data.ClaudeCliDebug == value)
+                return;
+            _data.ClaudeCliDebug = value;
+            Save();
+        }
+    }
+
+    /// <summary>
+    /// When true (the default), the app asks GitHub for a newer release on each launch. Nothing is
+    /// downloaded or installed — a found update only raises a notice. See <see cref="UpdateChecker"/>.
+    /// </summary>
+    public bool CheckForUpdatesOnStartup
+    {
+        get => _data.CheckForUpdatesOnStartup;
+        set
+        {
+            if (_data.CheckForUpdatesOnStartup == value)
+                return;
+            _data.CheckForUpdatesOnStartup = value;
+            Save();
+        }
+    }
+
+    /// <summary>When true, prereleases count as updates. Applies to the startup check and the manual
+    /// "Check for updates" button alike. Draft releases are never visible.</summary>
+    public bool IncludePrereleaseUpdates
+    {
+        get => _data.IncludePrereleaseUpdates;
+        set
+        {
+            if (_data.IncludePrereleaseUpdates == value)
+                return;
+            _data.IncludePrereleaseUpdates = value;
+            Save();
+        }
+    }
+
     /// <summary>Reset every persisted setting back to its default value.</summary>
     public void ResetToDefaults()
     {
@@ -184,6 +253,10 @@ public sealed class SettingsStore
 
         if (_data.Port is < 1 or > 65535)
             _data.Port = DefaultPort;
+
+        // A hand-edited or stale level name would otherwise be pushed into the host's config verbatim.
+        if (!Enum.TryParse<Microsoft.Extensions.Logging.LogLevel>(_data.LogLevel, ignoreCase: true, out _))
+            _data.LogLevel = DefaultLogLevel;
     }
 
     private void Save()

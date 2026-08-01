@@ -16,7 +16,21 @@
                     BorderThickness="1" CornerRadius="8" Padding="20">
                 <StackPanel Spacing="6">
                     <TextBlock Text="Claude Code Ollama Proxy" Style="{ThemeResource SubtitleTextBlockStyle}" />
-                    <TextBlock x:Name="VersionText"
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <TextBlock x:Name="VersionText" VerticalAlignment="Center"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   Style="{ThemeResource CaptionTextBlockStyle}" />
+                        <Button x:Name="CheckUpdatesButton" Click="CheckUpdatesButton_Click"
+                                VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon Glyph="&#xE895;" FontSize="14" />
+                                <TextBlock Text="Check for updates" />
+                            </StackPanel>
+                        </Button>
+                        <ProgressRing x:Name="CheckProgress" IsActive="False" Width="16" Height="16"
+                                      VerticalAlignment="Center" />
+                    </StackPanel>
+                    <TextBlock x:Name="UpdateStatusText" Visibility="Collapsed" TextWrapping="Wrap"
                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                Style="{ThemeResource CaptionTextBlockStyle}" />
                     <TextBlock TextWrapping="Wrap"
@@ -27,6 +41,15 @@
                                      Padding="0,4,0,0" />
                 </StackPanel>
             </Border>
+
+            <!-- Highlighted notice, opened by the manual check or by the one that runs at startup. Its
+                 message and the action button's target release are filled in at runtime. -->
+            <InfoBar x:Name="UpdateBar" IsOpen="False" IsClosable="False" Severity="Success"
+                     Title="Update available">
+                <InfoBar.ActionButton>
+                    <Button x:Name="ViewReleaseButton" Content="View release" Click="ViewReleaseButton_Click" />
+                </InfoBar.ActionButton>
+            </InfoBar>
         </StackPanel>
     </ScrollViewer>
 </Page>

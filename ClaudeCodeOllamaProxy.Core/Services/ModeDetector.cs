@@ -17,7 +17,7 @@ public enum ChatMode
 }
 
 /// <summary>
-/// Copilot's BYOK Ollama provider does not send an explicit mode; it is conveyed by which tools are
+/// Copilot's Bring Your Own Model Ollama provider does not send an explicit mode; it is conveyed by which tools are
 /// included on the request. This infers the mode from the tool names.
 /// </summary>
 public sealed class ModeDetector

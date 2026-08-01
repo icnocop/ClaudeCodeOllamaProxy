@@ -28,10 +28,16 @@ public sealed partial class TrayIconView : UserControl
         _dispatcher = DispatcherQueue.GetForCurrentThread();
 
         // Assign the left-click command in code: {x:Bind} on the detached tray UserControl doesn't
-        // reliably wire it (same reason the menu uses Click handlers). Single left-click opens the window.
-        TrayIcon.LeftClickCommand = ShowWindowCommand;
+        // reliably wire it (same reason the menu uses Click handlers). Single left-click toggles the
+        // window — open/foreground it, or minimize it if it's already the focused window.
+        TrayIcon.LeftClickCommand = ToggleWindowCommand;
 
         App.ProxyController.StateChanged += OnStateChanged;
+
+        // The tray icon is the only thing the user can see while the window is hidden, so it carries the
+        // update marker (and a tooltip line) too.
+        UpdateChecker.UpdateStateChanged += OnUpdateStateChanged;
+
         UpdateTooltip();
     }
 
@@ -44,7 +50,7 @@ public sealed partial class TrayIconView : UserControl
         if (_detached)
             return;
 
-        var newIcon = StatusIconRenderer.CreateIcon(App.ProxyController.State);
+        var newIcon = StatusIconRenderer.CreateIcon(App.ProxyController.State, UpdateChecker.Known is not null);
         try
         {
             TrayIcon.TrayIcon.UpdateIcon(newIcon);
@@ -66,6 +72,7 @@ public sealed partial class TrayIconView : UserControl
     {
         _detached = true;
         App.ProxyController.StateChanged -= OnStateChanged;
+        UpdateChecker.UpdateStateChanged -= OnUpdateStateChanged;
 
         if (_currentIcon != IntPtr.Zero)
         {
@@ -74,9 +81,10 @@ public sealed partial class TrayIconView : UserControl
         }
     }
 
-    // Left-click runs on the icon's own (main) thread, so a command binding is fine here.
+    // Left-click runs on the icon's own (main) thread, so a command binding is fine here. The tray menu's
+    // "Open" item stays a plain show — only the icon click toggles.
     [RelayCommand]
-    private void ShowWindow() => App.Current?.ShowMainWindow();
+    private void ToggleWindow() => App.Current?.ToggleMainWindow();
 
     private void OpenItem_Click(object sender, RoutedEventArgs e) => App.Current?.ShowMainWindow();
 
@@ -114,6 +122,17 @@ public sealed partial class TrayIconView : UserControl
         });
     }
 
+    private void OnUpdateStateChanged(UpdateInfo? info)
+    {
+        if (_detached)
+            return;
+        _dispatcher.TryEnqueue(() =>
+        {
+            UpdateTooltip();
+            RefreshIcon();
+        });
+    }
+
     private void UpdateTooltip()
     {
         if (_detached)
@@ -121,9 +140,10 @@ public sealed partial class TrayIconView : UserControl
 
         var controller = App.ProxyController;
         var status = controller.IsRunning ? "Running" : "Stopped";
+        var update = UpdateChecker.Known is { } info ? $"\nUpdate available: {info.DisplayVersion}" : string.Empty;
         try
         {
-            TrayIcon.ToolTipText = $"Claude Code Ollama Proxy\n{status} — {controller.ListeningUrl}";
+            TrayIcon.ToolTipText = $"Claude Code Ollama Proxy\n{status} — {controller.ListeningUrl}{update}";
         }
         catch (ObjectDisposedException)
         {

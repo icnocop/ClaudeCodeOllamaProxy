@@ -25,48 +25,6 @@
                 </Button>
             </Grid>
 
-            <!-- Port -->
-            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                    BorderThickness="1" CornerRadius="8" Padding="16,12">
-                <StackPanel Spacing="12">
-                    <Grid ColumnSpacing="12">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <FontIcon Grid.Column="0" Glyph="&#xE968;" VerticalAlignment="Center" />
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                            <TextBlock Text="Port" />
-                            <TextBlock Text="The local port the proxy listens on. The default Ollama port is 11434. Changes take effect after a restart."
-                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                       Style="{ThemeResource CaptionTextBlockStyle}" TextWrapping="Wrap" />
-                        </StackPanel>
-                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                            <!-- ValidationMode=InvalidInputOverwritten makes the NumberBox enforce Minimum/Maximum:
-                                 out-of-range numbers are clamped and empty/non-numeric input reverts to the last
-                                 valid value, so the port can never be 0, negative, >65535, or empty. -->
-                            <NumberBox x:Name="PortBox"
-                                       Minimum="1" Maximum="65535"
-                                       SpinButtonPlacementMode="Inline"
-                                       ValidationMode="InvalidInputOverwritten"
-                                       ValueChanged="PortBox_ValueChanged" MinWidth="160" />
-                            <Button x:Name="PortDefaultButton" Content="Default"
-                                    Click="PortDefaultButton_Click"
-                                    ToolTipService.ToolTip="Set to the default Ollama port (11434)" />
-                        </StackPanel>
-                    </Grid>
-                    <InfoBar x:Name="PortRestartBar" IsOpen="False" IsClosable="False"
-                             Severity="Informational"
-                             Message="The proxy is still using the previous port. Restart to apply the change.">
-                        <InfoBar.ActionButton>
-                            <Button Content="Restart now" Click="RestartProxyButton_Click" />
-                        </InfoBar.ActionButton>
-                    </InfoBar>
-                </StackPanel>
-            </Border>
-
             <!-- Run at startup -->
             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
@@ -130,6 +88,50 @@
                     </StackPanel>
                     <ToggleSwitch x:Name="StartMinimizedToggle" Grid.Column="2"
                                   Toggled="StartMinimizedToggle_Toggled" />
+                </Grid>
+            </Border>
+
+            <!-- Check for updates at startup -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1" CornerRadius="8" Padding="16,12">
+                <Grid ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <FontIcon Grid.Column="0" Glyph="&#xE895;" VerticalAlignment="Center" />
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="Automatically check for updates when the app starts" />
+                        <TextBlock Text="Ask GitHub for a newer release on each launch. Nothing is downloaded or installed; you can also check any time from the About tab."
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   Style="{ThemeResource CaptionTextBlockStyle}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <ToggleSwitch x:Name="UpdateCheckToggle" Grid.Column="2"
+                                  Toggled="UpdateCheckToggle_Toggled" />
+                </Grid>
+            </Border>
+
+            <!-- Include pre-release versions -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1" CornerRadius="8" Padding="16,12">
+                <Grid ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <FontIcon Grid.Column="0" Glyph="&#xEBD2;" VerticalAlignment="Center" />
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="Include pre-release versions" />
+                        <TextBlock Text="Offer pre-release builds as updates too. Applies to both the startup check and the About tab's button."
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   Style="{ThemeResource CaptionTextBlockStyle}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <ToggleSwitch x:Name="PrereleaseToggle" Grid.Column="2"
+                                  Toggled="PrereleaseToggle_Toggled" />
                 </Grid>
             </Border>
 

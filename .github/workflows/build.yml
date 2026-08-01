@@ -42,25 +42,32 @@ jobs:
       - name: Build (x64)
         run: dotnet build ClaudeCodeOllamaProxy.slnx -c Release -p:Platform=x64 --no-restore
 
+      # Two forms of the same version. NUMBER is the MSBuild <Version> (which can't take the leading
+      # "v"); it's stamped into the published assemblies so the app's About page — and its update
+      # check, which compares the running assembly version against the release tags — see the real
+      # release. VERSION is the tag / zip-name form. Keep them in lock-step.
       - name: Compute version
         id: version
         shell: bash
-        run: echo "VERSION=v$(date +'%Y.%m.%d').${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+        run: |
+          NUMBER="$(date +'%Y.%m.%d').${{ github.run_number }}"
+          echo "NUMBER=$NUMBER"    >> "$GITHUB_OUTPUT"
+          echo "VERSION=v$NUMBER" >> "$GITHUB_OUTPUT"
 
       # Console: framework-dependent, portable (no RID -> AnyCPU managed output).
       - name: Publish Console
-        run: dotnet publish ClaudeCodeOllamaProxy.Console/ClaudeCodeOllamaProxy.Console.csproj -c Release --no-self-contained -o publish/console
+        run: dotnet publish ClaudeCodeOllamaProxy.Console/ClaudeCodeOllamaProxy.Console.csproj -c Release --no-self-contained -p:Version=${{ steps.version.outputs.NUMBER }} -o publish/console
 
       # UI: WinUI unpackaged publish requires a RID per processor; --self-contained
       # false keeps it framework-dependent. Platform is mapped from the RID.
       - name: Publish UI (x86)
-        run: dotnet publish ClaudeCodeOllamaProxy.UI/ClaudeCodeOllamaProxy.UI.csproj -c Release -r win-x86 --self-contained false -p:Platform=x86 -p:WindowsPackageType=None -o publish/ui-win-x86
+        run: dotnet publish ClaudeCodeOllamaProxy.UI/ClaudeCodeOllamaProxy.UI.csproj -c Release -r win-x86 --self-contained false -p:Platform=x86 -p:WindowsPackageType=None -p:Version=${{ steps.version.outputs.NUMBER }} -o publish/ui-win-x86
 
       - name: Publish UI (x64)
-        run: dotnet publish ClaudeCodeOllamaProxy.UI/ClaudeCodeOllamaProxy.UI.csproj -c Release -r win-x64 --self-contained false -p:Platform=x64 -p:WindowsPackageType=None -o publish/ui-win-x64
+        run: dotnet publish ClaudeCodeOllamaProxy.UI/ClaudeCodeOllamaProxy.UI.csproj -c Release -r win-x64 --self-contained false -p:Platform=x64 -p:WindowsPackageType=None -p:Version=${{ steps.version.outputs.NUMBER }} -o publish/ui-win-x64
 
       - name: Publish UI (ARM64)
-        run: dotnet publish ClaudeCodeOllamaProxy.UI/ClaudeCodeOllamaProxy.UI.csproj -c Release -r win-arm64 --self-contained false -p:Platform=ARM64 -p:WindowsPackageType=None -o publish/ui-win-arm64
+        run: dotnet publish ClaudeCodeOllamaProxy.UI/ClaudeCodeOllamaProxy.UI.csproj -c Release -r win-arm64 --self-contained false -p:Platform=ARM64 -p:WindowsPackageType=None -p:Version=${{ steps.version.outputs.NUMBER }} -o publish/ui-win-arm64
 
       - name: Package zips
         shell: pwsh

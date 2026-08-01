@@ -18,12 +18,20 @@ public sealed partial class MainWindow : Window
     // Rendered large so the title bar always downscales it — crisp at any DPI.
     private const int TitleBarIconSize = 64;
 
+    // How long after losing activation the window still counts as "the one the user was just in".
+    // See WasRecentlyActive.
+    private const long RecentActivationGraceMs = 400;
+
     private readonly DispatcherQueue _dispatcher;
     private readonly HWND _hwnd;
     private bool _detached;
 
     // Plain brand icon (no status circle) shown in the title bar. Created once, freed on exit.
     private IntPtr _titleBarIcon;
+
+    // Activation tracking for the tray-icon toggle. _lastDeactivatedTicks is 0 until first deactivation.
+    private bool _isActive;
+    private long _lastDeactivatedTicks;
 
     public MainWindow()
     {
@@ -32,9 +40,14 @@ public sealed partial class MainWindow : Window
         _dispatcher = DispatcherQueue.GetForCurrentThread();
         _hwnd = new HWND(WinRT.Interop.WindowNative.GetWindowHandle(this));
 
-        // Set the window/taskbar icon to the brand glyph + status circle, and keep it in sync with the host.
+        Activated += OnActivated;
+
+        // Keep the window/taskbar icon in sync with the host state and with update availability — it
+        // carries a marker for each. Flag the About tab too. Seeded from any check that already finished
+        // (the startup check can complete before this window exists, or after it — hence both).
         App.ProxyController.StateChanged += OnStateChanged;
-        RefreshStatusIcon();
+        UpdateChecker.UpdateStateChanged += OnUpdateStateChanged;
+        ApplyUpdateBadge(UpdateChecker.Known);   // also does the initial RefreshStatusIcon
 
         // Stop the window from being resized below a usable minimum (WinUI has no built-in min size).
         WindowMinSizeHelper.Apply(_hwnd, SettingsStore.MinWindowWidth, SettingsStore.MinWindowHeight);
@@ -44,6 +57,24 @@ public sealed partial class MainWindow : Window
 
         // Restore the saved navigation-pane width and open/collapsed state.
         ApplyNavSettings();
+    }
+
+    /// <summary>
+    /// True if the window currently has activation, or lost it within the last
+    /// <see cref="RecentActivationGraceMs"/> ms. Clicking a notification-area icon activates the shell's
+    /// taskbar window, so by the time the click reaches us the main window has usually just been
+    /// deactivated — without the grace period the tray toggle could never see it as focused.
+    /// </summary>
+    public bool WasRecentlyActive =>
+        _isActive
+        || (_lastDeactivatedTicks != 0
+            && Environment.TickCount64 - _lastDeactivatedTicks < RecentActivationGraceMs);
+
+    private void OnActivated(object sender, WindowActivatedEventArgs args)
+    {
+        _isActive = args.WindowActivationState != WindowActivationState.Deactivated;
+        if (!_isActive)
+            _lastDeactivatedTicks = Environment.TickCount64;
     }
 
     /// <summary>
@@ -59,7 +90,8 @@ public sealed partial class MainWindow : Window
 
         try
         {
-            AppWindow.SetIcon(StatusIconRenderer.EnsureIconFile(App.ProxyController.State));
+            AppWindow.SetIcon(StatusIconRenderer.EnsureIconFile(
+                App.ProxyController.State, UpdateChecker.Known is not null));
         }
         catch
         {
@@ -90,6 +122,7 @@ public sealed partial class MainWindow : Window
     {
         _detached = true;
         App.ProxyController.StateChanged -= OnStateChanged;
+        UpdateChecker.UpdateStateChanged -= OnUpdateStateChanged;
 
         if (_titleBarIcon != IntPtr.Zero)
         {
@@ -109,6 +142,21 @@ public sealed partial class MainWindow : Window
         });
     }
 
+    private void OnUpdateStateChanged(UpdateInfo? info)
+    {
+        if (_detached)
+            return;
+        _dispatcher.TryEnqueue(() => ApplyUpdateBadge(info));
+    }
+
+    private void ApplyUpdateBadge(UpdateInfo? info)
+    {
+        AboutUpdateBadge.Visibility = info is null ? Visibility.Collapsed : Visibility.Visible;
+
+        // The taskbar icon carries the same marker, so it has to be recomposed too.
+        RefreshStatusIcon();
+    }
+
     // The status circle overlaid on the Home nav-item icon (mirrors the tray/taskbar indicator).
     private Microsoft.UI.Xaml.Shapes.Ellipse? _homeStatusDot;
 
@@ -119,7 +167,7 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Overlay a status circle on the Home nav-item icon, bottom-right. The icon is hosted in the item
+    /// Overlay a status circle on the Home nav-item icon, top-right. The icon is hosted in the item
     /// presenter's <c>Viewbox</c>; we wrap that Viewbox's content in a Grid and add the dot as an overlay,
     /// so it scales with the icon and shows in both the expanded and compact pane modes. Keeping the
     /// original vector <see cref="SymbolIcon"/> means it still themes (light/dark/selected) correctly.
@@ -148,7 +196,7 @@ public sealed partial class MainWindow : Window
             Width = 11,
             Height = 11,
             HorizontalAlignment = HorizontalAlignment.Right,
-            VerticalAlignment = VerticalAlignment.Bottom,
+            VerticalAlignment = VerticalAlignment.Top,
             // Soft white ring for separation from the glyph, matching the tray/taskbar icon.
             Stroke = new SolidColorBrush(StatusPalette.Ring.ToWindows()),
             StrokeThickness = 1,
@@ -221,7 +269,4 @@ public sealed partial class MainWindow : Window
                 break;
         }
     }
-
-    /// <summary>Select the Settings item (used by the Home page's "Settings" link).</summary>
-    public void NavigateToSettings() => Nav.SelectedItem = SettingsNavItem;
 }

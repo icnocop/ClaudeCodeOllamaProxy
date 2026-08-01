@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
+using ClaudeCodeOllamaProxy.Service.Logging;
 using ClaudeCodeOllamaProxy.UI.Logging;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
 
@@ -19,6 +21,8 @@ public enum ProxyState
 /// Owns the in-process ClaudeCodeOllamaProxy host lifecycle (start/stop/restart) for the tray app, and
 /// captures its log output into <see cref="Logs"/> for the Logs page. The host binds to the port from
 /// <see cref="SettingsStore"/> at start time; a changed port only takes effect on the next restart.
+/// Log verbosity and the Claude CLI debug flag, by contrast, are pushed in through
+/// <see cref="MutableRuntimeConfigurationSource"/> and apply live.
 /// </summary>
 public sealed class ProxyHostController
 {
@@ -26,6 +30,10 @@ public sealed class ProxyHostController
 
     private readonly SettingsStore _settings;
     private readonly ObservableLoggerProvider _logProvider = new();
+
+    // App-lifetime, not host-lifetime: re-added on every start so live settings survive a restart.
+    private readonly MutableRuntimeConfigurationSource _runtimeConfig = new();
+
     private readonly DispatcherQueue _dispatcher;
 
     private WebApplication? _app;
@@ -36,7 +44,33 @@ public sealed class ProxyHostController
         _dispatcher = DispatcherQueue.GetForCurrentThread();
         RunningPort = settings.Port;
         _logProvider.LineLogged += OnLineLogged;
+
+        // Seed the persisted values so the very first host start already honors them.
+        ApplyLogLevel();
+        ApplyClaudeCliDebug();
     }
+
+    /// <summary>
+    /// Push the persisted log verbosity to the host's global category filter and to the Logs page's own
+    /// floor. Applies live — no restart. Only <c>Logging:LogLevel:Default</c> is set: a more-specific
+    /// category rule would override it and silently defeat the switch.
+    /// </summary>
+    public void ApplyLogLevel()
+    {
+        var level = Enum.TryParse<LogLevel>(_settings.LogLevel, ignoreCase: true, out var parsed)
+            ? parsed
+            : LogLevel.Information;
+
+        _logProvider.MinLevel = level;
+        _runtimeConfig.Set("Logging:LogLevel:Default", level.ToString());
+    }
+
+    /// <summary>
+    /// Push the persisted Claude CLI debug flag to the host. Read per session by
+    /// <c>ClaudeSessionFactory</c>, so it takes effect on the next request without a restart.
+    /// </summary>
+    public void ApplyClaudeCliDebug() =>
+        _runtimeConfig.Set("Claude:CliDebug", _settings.ClaudeCliDebug ? "true" : "false");
 
     /// <summary>Live host log output, updated on the UI thread. Bind from the Logs page.</summary>
     public ObservableCollection<string> Logs { get; } = new();
@@ -72,7 +106,16 @@ public sealed class ProxyHostController
         var url = ListeningUrl;
         var app = ProxyHost.Create(
             ["--urls", url],
-            builder => builder.Logging.AddProvider(_logProvider));
+            builder =>
+            {
+                // Added last so it wins over appsettings.json, and re-registered so the logging binder
+                // picks up the source that was appended after CreateBuilder wired the Logging section.
+                // Cast to IConfigurationBuilder: ConfigurationManager's own Add<T> is the options-builder
+                // overload and can't take a source instance.
+                ((IConfigurationBuilder)builder.Configuration).Add(_runtimeConfig);
+                builder.Logging.AddConfiguration(builder.Configuration.GetSection("Logging"));
+                builder.Logging.AddProvider(_logProvider);
+            });
 
         try
         {

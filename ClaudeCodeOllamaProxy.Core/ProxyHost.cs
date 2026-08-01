@@ -36,7 +36,7 @@ public static class ProxyHost
             ContentRootPath = AppContext.BaseDirectory,
         });
 
-        // Listen on the default Ollama port so VS Copilot Chat's BYOK Ollama provider needs zero config.
+        // Listen on the default Ollama port so VS Copilot Chat's Bring Your Own Model Ollama provider needs zero config.
         // Loopback only: this proxy launches the local claude CLI, so it must not be exposed externally.
         var urlsConfigured = !string.IsNullOrEmpty(builder.Configuration["urls"])
             || !string.IsNullOrEmpty(builder.Configuration["ASPNETCORE_URLS"])

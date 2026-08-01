@@ -29,20 +29,29 @@
                         <FontIcon Glyph="&#xE9D9;" />
                     </muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-            </muxc:NavigationView.MenuItems>
-
-            <muxc:NavigationView.FooterMenuItems>
                 <muxc:NavigationViewItem x:Name="SettingsNavItem" Content="Settings" Tag="settings" AutomationProperties.AutomationId="NavSettings">
                     <muxc:NavigationViewItem.Icon>
                         <SymbolIcon Symbol="Setting" />
                     </muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-                <muxc:NavigationViewItem Content="About" Tag="about" AutomationProperties.AutomationId="NavAbout">
+                <muxc:NavigationViewItem x:Name="AboutNavItem" Content="About" Tag="about" AutomationProperties.AutomationId="NavAbout">
                     <muxc:NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE946;" />
                     </muxc:NavigationViewItem.Icon>
+                    <!-- Shown when an update is available, so a check that ran at startup (possibly while
+                         the window was hidden in the tray) is still discoverable. An icon badge, not the
+                         default dot — the dot is 4px and easy to miss. -->
+                    <muxc:NavigationViewItem.InfoBadge>
+                        <muxc:InfoBadge x:Name="AboutUpdateBadge" Visibility="Collapsed"
+                                        Width="20" Height="20"
+                                        ToolTipService.ToolTip="An update is available">
+                            <muxc:InfoBadge.IconSource>
+                                <muxc:FontIconSource Glyph="&#xE896;" FontSize="12" />
+                            </muxc:InfoBadge.IconSource>
+                        </muxc:InfoBadge>
+                    </muxc:NavigationViewItem.InfoBadge>
                 </muxc:NavigationViewItem>
-            </muxc:NavigationView.FooterMenuItems>
+            </muxc:NavigationView.MenuItems>
 
             <Frame x:Name="ContentFrame" />
         </muxc:NavigationView>

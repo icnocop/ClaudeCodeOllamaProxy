@@ -45,6 +45,8 @@ public sealed class AppSession : IDisposable
             Theme = theme,
             RunAsAdmin = false,              // no UAC prompt
             MinimizeToTrayOnClose = false,   // closing the window quits cleanly on teardown
+            // Left at its shipped default (true) so the Settings screenshot shows the real state; the
+            // check itself is suppressed by CLAUDECODEOLLAMAPROXY_UI_SKIP_UPDATE_CHECK — see AppDriver.
             Window = new SettingsStore.WindowPlacement(x, y, w, h),
         };
 
