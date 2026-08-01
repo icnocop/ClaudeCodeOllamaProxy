@@ -10,36 +10,105 @@
     <Grid Padding="32,24" RowSpacing="12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
         <Grid Grid.Row="0">
             <TextBlock Text="Logs" Style="{ThemeResource TitleTextBlockStyle}" VerticalAlignment="Center" />
-            <Button x:Name="ClearButton" Click="ClearButton_Click" HorizontalAlignment="Right" Content="Clear" />
+            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                <Button x:Name="CopyButton" Click="CopyButton_Click" IsEnabled="False"
+                        ToolTipService.ToolTip="Copy the selected lines (Ctrl+C)">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon Glyph="&#xE8C8;" FontSize="14" />
+                        <TextBlock Text="Copy" />
+                    </StackPanel>
+                </Button>
+                <Button x:Name="ClearButton" Click="ClearButton_Click" Content="Clear" />
+            </StackPanel>
         </Grid>
 
+        <!-- Verbosity -->
         <Border Grid.Row="1"
                 Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1" CornerRadius="8" Padding="16,12">
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <FontIcon Grid.Column="0" Glyph="&#xE9D9;" VerticalAlignment="Center" />
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="Logging verbosity" />
+                    <TextBlock Text="Applies immediately, to both these logs and the log files on disk. Trace and Debug are very noisy."
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               Style="{ThemeResource CaptionTextBlockStyle}" TextWrapping="Wrap" />
+                </StackPanel>
+                <ComboBox x:Name="LogLevelCombo" Grid.Column="2" MinWidth="140"
+                          VerticalAlignment="Center"
+                          SelectionChanged="LogLevelCombo_SelectionChanged">
+                    <ComboBoxItem Content="Trace" Tag="Trace" />
+                    <ComboBoxItem Content="Debug" Tag="Debug" />
+                    <ComboBoxItem Content="Information" Tag="Information" />
+                    <ComboBoxItem Content="Warning" Tag="Warning" />
+                    <ComboBoxItem Content="Error" Tag="Error" />
+                    <ComboBoxItem Content="Critical" Tag="Critical" />
+                </ComboBox>
+                <Button x:Name="LogLevelDefaultButton" Grid.Column="3" Content="Default"
+                        VerticalAlignment="Center"
+                        Click="LogLevelDefaultButton_Click"
+                        ToolTipService.ToolTip="Reset to the default verbosity (Information)" />
+            </Grid>
+        </Border>
+
+        <!-- Claude CLI debug output -->
+        <Border Grid.Row="2"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1" CornerRadius="8" Padding="16,12">
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <FontIcon Grid.Column="0" Glyph="&#xEBE8;" VerticalAlignment="Center" />
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="Claude CLI debug output" />
+                    <TextBlock Text="When on, the claude CLI runs with --debug and its output is captured in the logs. Applies to the next request; independent of the verbosity above."
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               Style="{ThemeResource CaptionTextBlockStyle}" TextWrapping="Wrap" />
+                </StackPanel>
+                <ToggleSwitch x:Name="ClaudeCliDebugToggle" Grid.Column="2"
+                              Toggled="ClaudeCliDebugToggle_Toggled" />
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="3"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                 BorderThickness="1" CornerRadius="8">
-            <ListView x:Name="LogList"
-                      SelectionMode="None"
-                      FontFamily="Consolas"
-                      FontSize="12"
-                      Padding="8">
-                <ListView.ItemContainerStyle>
-                    <Style TargetType="ListViewItem">
-                        <Setter Property="MinHeight" Value="0" />
-                        <Setter Property="Padding" Value="4,1" />
-                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                    </Style>
-                </ListView.ItemContainerStyle>
-                <ListView.ItemTemplate>
-                    <DataTemplate x:DataType="x:String">
-                        <TextBlock Text="{x:Bind}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
-                    </DataTemplate>
-                </ListView.ItemTemplate>
-            </ListView>
+            <!-- A read-only TextBox, not a ListView: it gives native click-drag selection spanning any
+                 number of lines (plus partial lines), Ctrl+A, Ctrl+C, keyboard navigation, and its own
+                 Copy / Select all context menu. A ListView can only select whole rows, and a
+                 per-row selectable TextBlock swallows the pointer so even that stops working. -->
+            <TextBox x:Name="LogBox"
+                     IsReadOnly="True"
+                     AcceptsReturn="True"
+                     TextWrapping="Wrap"
+                     IsSpellCheckEnabled="False"
+                     BorderThickness="0"
+                     Background="Transparent"
+                     FontFamily="Consolas"
+                     FontSize="12"
+                     Padding="8"
+                     SelectionChanged="LogBox_SelectionChanged"
+                     ScrollViewer.VerticalScrollBarVisibility="Auto"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled" />
         </Border>
     </Grid>
 </Page>

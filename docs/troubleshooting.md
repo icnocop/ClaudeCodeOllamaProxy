@@ -1,5 +1,18 @@
 # Troubleshooting
 
+- **"There's no *Manage models* in the model dropdown" (Visual Studio only):** Bring Your Own Model
+  is **not available to Copilot Business or Enterprise** users
+  ([Microsoft docs](https://learn.microsoft.com/en-us/visualstudio/ide/copilot-select-add-models?view=visualstudio#limitations-and-considerations)),
+  and a GitHub account tied to an Organization usually carries one of those plans — so the entry is
+  hidden. Add a **personal** GitHub account and
+  [make it the active account](https://learn.microsoft.com/en-us/visualstudio/ide/work-with-github-accounts?view=visualstudio#switch-the-active-account),
+  then reopen the dropdown. Also check you're on **17.14 or later** — earlier builds have no BYOM at
+  all. VS Code is unaffected (its BYOK models need no Copilot plan). See
+  [Visual Studio setup](visual-studio-setup.md).
+- **"The Ollama provider lists no models":** the proxy isn't running, or the endpoint port doesn't
+  match the one on the tray app's **Home** page. Confirm with
+  `curl http://localhost:11434/api/tags` — it should return the model list. Changing the proxy port
+  requires re-adding the provider with the new endpoint URL.
 - **`debugger_launch_unit_test` (and similar) "caps execution at 30 seconds":** that cap is in
   **Copilot's own tool** (VS-side), not this proxy or the claude CLI — the proxy can't extend it.
   `Claude.McpToolTimeoutMs` only governs how long the proxy/CLI will wait for a bridged tool result

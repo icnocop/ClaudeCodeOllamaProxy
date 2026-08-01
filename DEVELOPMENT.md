@@ -9,8 +9,9 @@ How to build, run, and test Claude Code Ollama Proxy from source. End-user instr
 - **Claude Code CLI** installed and on `PATH`, and authenticated:
   - `npm install -g @anthropic-ai/claude-code`
   - `claude login` (or set `ANTHROPIC_API_KEY` / `ANTHROPIC_AUTH_TOKEN` in the proxy's environment).
-- A Visual Studio 2026 / VS Code build whose Copilot Chat supports the Ollama BYOK provider
-  (and Agent mode for it).
+- **Visual Studio 2022 17.14+** / **Visual Studio 2026**, or **VS Code 1.99+** — a build whose
+  Copilot Chat supports the Ollama Bring Your Own Model provider (and Agent mode for it). See
+  [Visual Studio setup](docs/visual-studio-setup.md) / [VS Code setup](docs/vscode-setup.md).
 - For building/running the tray app (`ClaudeCodeOllamaProxy.UI`): Windows 10 1809+; build for
   **x64 / x86 / ARM64** (the WinUI app has no "Any CPU" platform — pick one in the Configuration
   Manager).
@@ -54,6 +55,18 @@ curl -s -X POST $H/api/show -H "Content-Type: application/json" -d '{"model":"so
 
 See [docs/logging.md](docs/logging.md) for verbose tracing of the wire protocol and CLI command line.
 
+### Versioning
+
+The release workflow stamps the version into the published assemblies
+(`dotnet publish -p:Version=YYYY.MM.DD.<run>`, matching the `vYYYY.MM.DD.<run>` release tag). A local
+build sets no `<Version>` and so reports **1.0.0.0** on the About tab, which is older than every
+release — the update check therefore always reports an update available when running from source. To
+see what a released build looks like, pass the version yourself:
+
+```bash
+dotnet build ClaudeCodeOllamaProxy.UI/ClaudeCodeOllamaProxy.UI.csproj -c Release -p:Platform=x64 -p:Version=2026.06.28.9
+```
+
 ## UI screenshot tests (`ClaudeCodeOllamaProxy.UI.Tests`)
 
 [FlaUI](https://github.com/FlaUI/FlaUI)-based tests that launch the tray app, navigate each page, and
@@ -74,6 +87,9 @@ Notes:
   `CLAUDECODEOLLAMAPROXY_UI_DATADIR`) so it never touches your real settings, runs **non-elevated**
   (no UAC prompt), and binds an isolated port (`18434`).
 - The app is **single-instance**, so the test closes any already-running tray instance first.
+- The startup **update check** is suppressed via `CLAUDECODEOLLAMAPROXY_UI_SKIP_UPDATE_CHECK`, so a run
+  never calls the GitHub API and no "Update available" dialog can land in a screenshot. The *setting* is
+  left at its shipped default, so the Settings screenshot still shows the toggle on.
 - Page Objects live in `PageObjects/`; each element is a property that resolves by AutomationId in its
   getter (the idiomatic .NET Page Object Model — no `[FindBy]`/PageFactory attributes).
 

@@ -1,6 +1,6 @@
 # How it works
 
-Copilot's BYOK Ollama provider splits discovery from chat:
+Copilot's Bring Your Own Model Ollama provider splits discovery from chat:
 
 - **Discovery (Ollama-native):** `GET /api/version`, `GET /api/tags`, `POST /api/show`.
 - **Chat:** `POST /v1/chat/completions` — OpenAI shape, streamed as SSE.

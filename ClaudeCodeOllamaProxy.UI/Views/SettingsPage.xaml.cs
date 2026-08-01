@@ -18,17 +18,16 @@ public sealed partial class SettingsPage : Page
         _loading = true;
 
         StartupToggle.IsOn = StartupManager.IsEnabled;
-        PortBox.Value = App.Settings.Port;
         SelectThemeItem(App.Settings.Theme);
         MinimizeToTrayToggle.IsOn = App.Settings.MinimizeToTrayOnClose;
         StartMinimizedToggle.IsOn = App.Settings.StartMinimizedToTray;
+        UpdateCheckToggle.IsOn = App.Settings.CheckForUpdatesOnStartup;
+        PrereleaseToggle.IsOn = App.Settings.IncludePrereleaseUpdates;
 
         AdminToggle.IsOn = App.Settings.RunAsAdmin;
         var elevated = ElevationHelper.IsElevated();
         RestartAdminButton.IsEnabled = !elevated;
         AdminStatusText.Visibility = elevated ? Visibility.Visible : Visibility.Collapsed;
-
-        UpdatePortRestartBar();
 
         _loading = false;
     }
@@ -83,6 +82,22 @@ public sealed partial class SettingsPage : Page
         App.Settings.StartMinimizedToTray = StartMinimizedToggle.IsOn;
     }
 
+    private void UpdateCheckToggle_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_loading)
+            return;
+
+        App.Settings.CheckForUpdatesOnStartup = UpdateCheckToggle.IsOn;
+    }
+
+    private void PrereleaseToggle_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_loading)
+            return;
+
+        App.Settings.IncludePrereleaseUpdates = PrereleaseToggle.IsOn;
+    }
+
     private async void ResetButton_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new ContentDialog
@@ -105,7 +120,12 @@ public sealed partial class SettingsPage : Page
         App.Current?.ApplyTheme();          // re-apply default theme to window + tray
         (App.MainWindow as MainWindow)?.ApplyNavSettings();
 
-        LoadFromSettings();                 // refresh all controls to the defaults
+        // Log level and CLI debug live on the Logs page but are pushed into the running host's
+        // configuration, so re-apply the defaults there too (those pages reload on next navigation).
+        App.ProxyController.ApplyLogLevel();
+        App.ProxyController.ApplyClaudeCliDebug();
+
+        LoadFromSettings();                 // refresh this page's controls to the defaults
     }
 
     private void RestartAdminButton_Click(object sender, RoutedEventArgs e) =>
@@ -122,41 +142,6 @@ public sealed partial class SettingsPage : Page
             StartupManager.Disable();
     }
 
-    private void PortBox_ValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
-    {
-        if (_loading)
-            return;
-
-        // Clearing the box makes Value NaN before InvalidInputOverwritten reverts the text on focus loss;
-        // (int)NaN is garbage (e.g. int.MinValue), which would persist and later bind a random port. Restore
-        // the last valid port and skip persisting until the control overwrites the empty input itself.
-        if (double.IsNaN(args.NewValue))
-        {
-            PortBox.Value = App.Settings.Port;
-            return;
-        }
-
-        // InvalidInputOverwritten + Minimum/Maximum guarantees any other value is an in-range number, so just
-        // persist it. The host stays on its current port until an explicit restart.
-        var port = (int)args.NewValue;
-        if (port != App.Settings.Port)
-            App.Settings.Port = port;
-
-        UpdatePortRestartBar();
-    }
-
-    private void PortDefaultButton_Click(object sender, RoutedEventArgs e) =>
-        PortBox.Value = SettingsStore.DefaultPort; // raises ValueChanged → persists + updates the restart bar
-
     private void ResetWindowSizeButton_Click(object sender, RoutedEventArgs e) =>
         (App.MainWindow as MainWindow)?.ResetWindowSize();
-
-    private async void RestartProxyButton_Click(object sender, RoutedEventArgs e)
-    {
-        await App.ProxyController.RestartAsync();
-        UpdatePortRestartBar();
-    }
-
-    private void UpdatePortRestartBar() =>
-        PortRestartBar.IsOpen = App.Settings.Port != App.ProxyController.RunningPort;
 }

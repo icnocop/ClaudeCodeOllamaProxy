@@ -11,14 +11,16 @@ namespace ClaudeCodeOllamaProxy.Services;
 /// </summary>
 public sealed class ClaudeSessionFactory
 {
-    private readonly ProxyOptions _options;
+    // Monitored rather than snapshotted so a settings change (e.g. the tray app's CLI-debug toggle,
+    // pushed in as configuration) applies to the next session without restarting the host.
+    private readonly IOptionsMonitor<ProxyOptions> _options;
     private readonly ILoggerFactory _sdkLoggerFactory;
     private readonly ILogger _cliLogger;
     private readonly ILogger<ClaudeSessionFactory> _logger;
 
-    public ClaudeSessionFactory(IOptions<ProxyOptions> options, ILoggerFactory loggerFactory)
+    public ClaudeSessionFactory(IOptionsMonitor<ProxyOptions> options, ILoggerFactory loggerFactory)
     {
-        _options = options.Value;
+        _options = options;
         // The SDK runs a background message-reader loop that logs through this factory; wrap it so a
         // log emitted after the host's providers are disposed (stop/restart) can't crash the process.
         _sdkLoggerFactory = new FaultTolerantLoggerFactory(loggerFactory);
@@ -40,28 +42,30 @@ public sealed class ClaudeSessionFactory
         IReadOnlyDictionary<string, McpServerConfig>? mcpServers = null,
         string? effort = null)
     {
-        var traceEnabled = _cliLogger.IsEnabled(LogLevel.Trace);
+        var claude = _options.CurrentValue.Claude;
 
         // The AJGit SDK has no effort option, so pass it to the CLI as --effort via ExtraArgs.
+        // --debug comes from its own setting, NOT from the log level: raising verbosity to Trace must
+        // not silently turn on CLI debug output.
         var extraArgs = new Dictionary<string, string?>();
-        if (traceEnabled) extraArgs["debug"] = null;
+        if (claude.CliDebug) extraArgs["debug"] = null;
         if (!string.IsNullOrWhiteSpace(effort)) extraArgs["effort"] = effort;
 
         // CLI behavior tuned via environment variables (the SDK passes these to the subprocess):
         // long tool timeouts for build/test/debug, and a high output cap so large file reads aren't truncated.
         var environment = new Dictionary<string, string>();
-        if (_options.Claude.McpToolTimeoutMs > 0)
-            environment["MCP_TOOL_TIMEOUT"] = _options.Claude.McpToolTimeoutMs.ToString();
-        if (_options.Claude.MaxMcpOutputTokens > 0)
-            environment["MAX_MCP_OUTPUT_TOKENS"] = _options.Claude.MaxMcpOutputTokens.ToString();
+        if (claude.McpToolTimeoutMs > 0)
+            environment["MCP_TOOL_TIMEOUT"] = claude.McpToolTimeoutMs.ToString();
+        if (claude.MaxMcpOutputTokens > 0)
+            environment["MAX_MCP_OUTPUT_TOKENS"] = claude.MaxMcpOutputTokens.ToString();
 
         var options = new ClaudeAgentOptions
         {
             Model = model,
             WorkingDirectory = workingDirectory,
             PermissionMode = permissionMode,
-            MaxTurns = _options.Claude.MaxTurns,
-            CliPath = string.IsNullOrWhiteSpace(_options.Claude.CliPath) ? null : _options.Claude.CliPath,
+            MaxTurns = claude.MaxTurns,
+            CliPath = string.IsNullOrWhiteSpace(claude.CliPath) ? null : claude.CliPath,
             AllowedTools = allowedTools ?? Array.Empty<string>(),
             DisallowedTools = disallowedTools ?? Array.Empty<string>(),
             McpServers = mcpServers,

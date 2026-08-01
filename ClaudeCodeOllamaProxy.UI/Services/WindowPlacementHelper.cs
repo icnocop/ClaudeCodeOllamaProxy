@@ -28,6 +28,11 @@ public static class WindowPlacementHelper
     /// <summary>Persist the window's current position, size, and the monitor it's on.</summary>
     public static void Save(AppWindow appWindow, SettingsStore settings)
     {
+        // A minimized window reports an off-screen position (roughly -32000,-32000), which would overwrite
+        // the good placement with garbage. Keep whatever was saved when it was last on screen.
+        if (appWindow.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Minimized })
+            return;
+
         var pos = appWindow.Position;
         var size = appWindow.Size;
         if (size.Width <= 0 || size.Height <= 0)

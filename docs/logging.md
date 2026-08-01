@@ -21,6 +21,16 @@ Logging__LogLevel__Default=Trace dotnet run --project ClaudeCodeOllamaProxy.Cons
 
 or in `appsettings.json` set `"Logging": { "LogLevel": { "Default": "Trace" } }`.
 
+**In the tray app**, use the **Logging verbosity** picker on the Logs tab (with a "Default" button to
+restore `Information`). It applies immediately — no restart — to both the Logs tab and the files under
+`Logs/`, and is persisted across launches. It sets `Logging:LogLevel:Default` through a mutable
+configuration source, so `Microsoft.AspNetCore` stays pinned at `Warning` and Kestrel remains quiet
+even at `Trace`.
+
+> The `claude` CLI's own `--debug` output is a **separate** setting — "Claude CLI debug output", the
+> toggle directly below the verbosity picker (`Claude.CliDebug` in `appsettings.json`). Raising
+> verbosity to `Trace` no longer turns it on as a side effect.
+
 Levels:
 
 - **Information** (default): per-request model/mode/effort/working-dir, effective Claude options,
@@ -34,7 +44,9 @@ Levels:
   - **The claude CLI command line** (`Starting CLI: …/claude.exe --output-format stream-json …`) and
     CLI **stdout** — category `Claude.AgentSdk` (its transport logs the spawn command at `Debug`).
   - **CLI stdin/stdout/stderr** as the proxy sees them — category `ClaudeCodeOllamaProxy.ClaudeCli`.
-    (One-shot Ask/Plan requests use `--print`, so there is no stdin stream; the bridge session does.)
+    (Every chat path uses a bidirectional session, sending the prompt over stdin, so there is always a
+    stdin stream.) The CLI's own `--debug` diagnostics arrive on stderr under this category when
+    `Claude.CliDebug` is enabled.
 
 To raise just one area instead of everything, set that category, e.g.
 `Logging__LogLevel__ClaudeCodeOllamaProxy=Trace` (proxy wire + CLI I/O + options) or

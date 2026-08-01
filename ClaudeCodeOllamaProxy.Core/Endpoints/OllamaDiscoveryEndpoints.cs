@@ -7,7 +7,7 @@ using ClaudeCodeOllamaProxy.Services;
 namespace ClaudeCodeOllamaProxy.Endpoints;
 
 /// <summary>
-/// Ollama-native discovery endpoints that VS Copilot Chat's BYOK Ollama provider calls before chat:
+/// Ollama-native discovery endpoints that VS Copilot Chat's Bring Your Own Model Ollama provider calls before chat:
 /// <c>/api/version</c>, <c>/api/tags</c>, and <c>/api/show</c>, plus the OpenAI <c>/v1/models</c> list.
 /// All model data comes from <see cref="ModelCatalog"/>.
 /// </summary>

@@ -87,13 +87,24 @@ public sealed class ModelCatalog
     /// All selectable models: each base model expanded across its own supported effort levels
     /// (intersected with the configured allow-list). Models that don't support effort (e.g. Haiku)
     /// surface as a single variant with no effort suffix.
+    /// <para>
+    /// Ordered for Copilot's model picker — alphabetically by friendly name, then by effort from
+    /// lightest to heaviest, so a model's variants stay together (Opus ×5, Opus 4.6 ×5, Opus 4.7 ×5,
+    /// Opus 4.8 ×5, Opus 5 ×5, …). The cache keeps discovery order, so the CLI-marked default model
+    /// (and <see cref="DefaultBaseAsync"/>'s "first discovered" fallback) is unaffected by this sort.
+    /// </para>
     /// </summary>
     public async Task<IReadOnlyList<CatalogModel>> GetModelsAsync(CancellationToken ct = default)
     {
         var bases = await GetBaseModelsAsync(ct);
         var allow = SupportedEfforts();
         var result = new List<CatalogModel>();
-        foreach (var b in bases)
+
+        var ordered = bases
+            .OrderBy(FriendlyOf, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(b => b.Id, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var b in ordered)
         {
             var efforts = EffortsFor(b, allow);
             if (efforts.Count == 0)
@@ -105,9 +116,20 @@ public sealed class ModelCatalog
         return result;
     }
 
-    /// <summary>A model's effort levels filtered to the configured allow-list (empty if no effort).</summary>
+    /// <summary>The display name a base model sorts and labels under.</summary>
+    private string FriendlyOf(BaseModelInfo b) => Friendly(b.Id, b.DisplayName, _options.ResolveDefaults(b.Id));
+
+    /// <summary>
+    /// A model's effort levels filtered to the configured allow-list (empty if no effort), ordered
+    /// lightest to heaviest rather than in whatever order the CLI or config listed them.
+    /// </summary>
     private static List<string> EffortsFor(BaseModelInfo b, IReadOnlyList<string> allow)
-        => b.SupportsEffort ? b.SupportedEfforts.Where(e => allow.Contains(e)).ToList() : new List<string>();
+        => b.SupportsEffort
+            ? b.SupportedEfforts
+                .Where(allow.Contains)
+                .OrderBy(e => Array.IndexOf(ValidEfforts, e))
+                .ToList()
+            : new List<string>();
 
     /// <summary>
     /// Resolve a requested model id to a base model + effort. Copilot may send back either the clean
@@ -253,7 +275,9 @@ public sealed class ModelCatalog
             if (_baseCache.Count > 0 && DateTimeOffset.UtcNow - _cachedAtUtc < ttl)
                 return _baseCache;
 
-            _baseCache = await RefreshAsync(ct);
+            // Union in the configured extra models after discovery, so they are present regardless of
+            // which discovery tier (init / supported_models / fallback aliases) produced the list.
+            _baseCache = WithKnownModels(await RefreshAsync(ct));
             _cachedAtUtc = DateTimeOffset.UtcNow;
             return _baseCache;
         }
@@ -261,6 +285,54 @@ public sealed class ModelCatalog
         {
             _gate.Release();
         }
+    }
+
+    /// <summary>
+    /// Add the configured <c>Claude.KnownModels</c> ids that discovery didn't report, so specific
+    /// Anthropic versions (e.g. <c>claude-opus-5</c>) are selectable from Copilot's model picker even
+    /// when the CLI only reports family aliases. A known id already covered by a discovered model is
+    /// skipped — the CLI's own value wins, because it is known-good and may carry a variant suffix
+    /// (<c>claude-opus-5[1m]</c>). Effort metadata for added entries comes from <c>ModelDefaults</c>,
+    /// since these have no CLI payload to read <c>supportedEffortLevels</c> from.
+    /// </summary>
+    private List<BaseModelInfo> WithKnownModels(IReadOnlyList<BaseModelInfo> discovered)
+    {
+        var result = discovered.ToList();
+        if (_options.Claude.KnownModels.Count == 0)
+            return result;
+
+        var seen = new HashSet<string>(result.Select(m => NormalizeId(m.Id)), StringComparer.OrdinalIgnoreCase);
+        var added = new List<string>();
+
+        foreach (var raw in _options.Claude.KnownModels)
+        {
+            var id = raw?.Trim();
+            if (string.IsNullOrEmpty(id) || !seen.Add(NormalizeId(id)))
+                continue;
+
+            var defaults = _options.ResolveDefaults(id);
+            IReadOnlyList<string> efforts = !defaults.SupportsEffort ? Array.Empty<string>()
+                : defaults.SupportedEfforts.Count > 0
+                    ? defaults.SupportedEfforts.Select(e => e.Trim().ToLowerInvariant()).ToList()
+                    : ValidEfforts;
+
+            // DisplayName is left null: BuildVariant resolves the friendly name from ModelDefaults anyway.
+            result.Add(new BaseModelInfo(id, null, defaults.SupportsEffort, efforts));
+            added.Add(id);
+        }
+
+        if (added.Count > 0)
+            _logger.LogInformation("Added {Count} configured model(s) the CLI did not report: {Models}",
+                added.Count, string.Join(", ", added));
+
+        return result;
+    }
+
+    /// <summary>Strip a CLI variant suffix (<c>opus[1m]</c> → <c>opus</c>) for dedupe comparisons only.</summary>
+    private static string NormalizeId(string id)
+    {
+        var bracket = id.IndexOf('[');
+        return (bracket > 0 ? id[..bracket] : id).Trim();
     }
 
     private async Task<IReadOnlyList<BaseModelInfo>> RefreshAsync(CancellationToken ct)

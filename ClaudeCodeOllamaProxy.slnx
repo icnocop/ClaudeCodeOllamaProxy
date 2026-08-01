@@ -10,9 +10,34 @@
   <Folder Name="/Solution Items/">
     <File Path=".gitattributes" />
     <File Path=".gitignore" />
+    <File Path="CHANGELOG.md" />
     <File Path="CLAUDE.md" />
+    <File Path="DEVELOPMENT.md" />
     <File Path="LICENSE.txt" />
     <File Path="README.md" />
+  </Folder>
+  <Folder Name="/Solution Items/docs/">
+    <File Path="docs/configuration.md" />
+    <File Path="docs/effort-levels.md" />
+    <File Path="docs/how-it-works.md" />
+    <File Path="docs/image-input.md" />
+    <File Path="docs/limitations.md" />
+    <File Path="docs/logging.md" />
+    <File Path="docs/references.md" />
+    <File Path="docs/tool-call-bridge.md" />
+    <File Path="docs/troubleshooting.md" />
+    <File Path="docs/visual-studio-setup.md" />
+    <File Path="docs/vscode-setup.md" />
+  </Folder>
+  <Folder Name="/Solution Items/docs/screenshots/">
+    <File Path="docs/screenshots/about-dark.png" />
+    <File Path="docs/screenshots/about-light.png" />
+    <File Path="docs/screenshots/home-dark.png" />
+    <File Path="docs/screenshots/home-light.png" />
+    <File Path="docs/screenshots/logs-dark.png" />
+    <File Path="docs/screenshots/logs-light.png" />
+    <File Path="docs/screenshots/settings-dark.png" />
+    <File Path="docs/screenshots/settings-light.png" />
   </Folder>
   <Project Path="ClaudeCodeOllamaProxy.Console/ClaudeCodeOllamaProxy.Console.csproj" />
   <Project Path="ClaudeCodeOllamaProxy.Core/ClaudeCodeOllamaProxy.Core.csproj" />

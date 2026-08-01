@@ -41,6 +41,11 @@ public sealed class AppDriver : IDisposable
         };
         startInfo.Environment["CLAUDECODEOLLAMAPROXY_UI_DATADIR"] = dataDir;
 
+        // Suppress the startup update check rather than turning its setting off, so screenshots still show
+        // the toggle in its shipped (on) state while the run stays off the network — and no "Update
+        // available" dialog can land in a shot.
+        startInfo.Environment["CLAUDECODEOLLAMAPROXY_UI_SKIP_UPDATE_CHECK"] = "1";
+
         var app = Application.Launch(startInfo);
         var automation = new UIA3Automation();
 

@@ -1,4 +1,5 @@
 IsIconic
+IsWindowVisible
 ShowWindow
 GetForegroundWindow
 SetForegroundWindow

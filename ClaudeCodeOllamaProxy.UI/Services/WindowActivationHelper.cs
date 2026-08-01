@@ -15,6 +15,25 @@ namespace ClaudeCodeOllamaProxy.UI.Services;
 /// </summary>
 internal static class WindowActivationHelper
 {
+    /// <summary>
+    /// True when the window is on screen — shown (not hidden to the tray) and not minimized.
+    /// Win32 is the source of truth here because hiding to the tray is itself a raw
+    /// <c>ShowWindow(SW_HIDE)</c> (H.NotifyIcon's <c>Window.Hide()</c>), which XAML doesn't model.
+    /// </summary>
+    public static bool IsOnScreen(Window window)
+    {
+        var hwnd = new HWND(WinRT.Interop.WindowNative.GetWindowHandle(window));
+        return hwnd != default && PInvoke.IsWindowVisible(hwnd) && !PInvoke.IsIconic(hwnd);
+    }
+
+    /// <summary>Minimize the window to the taskbar (it stays in the tray and in alt-tab).</summary>
+    public static void Minimize(Window window)
+    {
+        var hwnd = new HWND(WinRT.Interop.WindowNative.GetWindowHandle(window));
+        if (hwnd != default)
+            PInvoke.ShowWindow(hwnd, SHOW_WINDOW_CMD.SW_MINIMIZE);
+    }
+
     public static void BringToFront(Window window)
     {
         var hwnd = new HWND(WinRT.Interop.WindowNative.GetWindowHandle(window));

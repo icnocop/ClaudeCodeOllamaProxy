@@ -29,6 +29,11 @@ internal static class StatusPalette
     /// <summary>The soft near-white ring drawn behind the status fill so it separates from the glyph.</summary>
     public static readonly Argb Ring = new(235, 250, 250, 250);
 
+    // The "update available" marker. A distinct hue from every ProxyState color above, because it shares
+    // the icon with the status circle and the two must not be mistaken for each other.
+    public static readonly Argb UpdateFill = new(255, 100, 165, 235);   // soft blue
+    public static readonly Argb UpdateEdge = new(255, 48, 108, 172);
+
     /// <summary>The fill + edge pair for a given host state.</summary>
     public static (Argb Fill, Argb Edge) For(ProxyState state) => state switch
     {

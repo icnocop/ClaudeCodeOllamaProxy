@@ -73,6 +73,61 @@ public partial class App : Application
         // always start minimized; otherwise show the window.
         if (!IsStartupLaunch() && !Settings.StartMinimizedToTray)
             ShowMainWindow();
+
+        // Fire-and-forget, like the host start above: a slow or failing update check must not delay
+        // (or block) launch.
+        if (Settings.CheckForUpdatesOnStartup && !SkipUpdateCheck())
+            _ = CheckForUpdatesAtStartupAsync();
+    }
+
+    /// <summary>
+    /// Test hook (alongside <c>CLAUDECODEOLLAMAPROXY_UI_DATADIR</c>): suppress the startup update check
+    /// without turning the *setting* off, so the UI screenshot tests neither call the GitHub API nor risk
+    /// catching the dialog in frame — while still showing the toggle in its real shipped state.
+    /// </summary>
+    private static bool SkipUpdateCheck() =>
+        Environment.GetEnvironmentVariable("CLAUDECODEOLLAMAPROXY_UI_SKIP_UPDATE_CHECK") is { Length: > 0 };
+
+    /// <summary>
+    /// Ask GitHub for a newer release at launch. A hit raises the same dialog as the About page's button —
+    /// but only when the window is actually on screen: when the app started hidden in the tray, popping a
+    /// dialog would defeat that, so the notice is left to <see cref="UpdateChecker.UpdateStateChanged"/>
+    /// (the About nav badge and the About page's notice bar).
+    /// </summary>
+    private async Task CheckForUpdatesAtStartupAsync()
+    {
+        try
+        {
+            var info = await UpdateChecker.CheckAsync(Settings.IncludePrereleaseUpdates);
+            if (info is null)
+                return;
+
+            RunOnUi(async () =>
+            {
+                if (MainWindow is not MainWindow window
+                    || !WindowActivationHelper.IsOnScreen(window)
+                    || window.Content is not FrameworkElement root)
+                {
+                    return;
+                }
+
+                try
+                {
+                    await UpdateDialog.ShowAsync(root.XamlRoot, root.ActualTheme, info);
+                }
+                catch
+                {
+                    // ShowAsync throws if another ContentDialog is already open. This lambda is async
+                    // void, so an escaping exception would take the process down — swallow it and leave
+                    // the notice to the About page.
+                }
+            });
+        }
+        catch
+        {
+            // Offline, rate-limited, or GitHub is down. An unattended check has nowhere useful to report
+            // that, and it must never nag or crash — the About page's button surfaces the error on demand.
+        }
     }
 
     /// <summary>Apply the configured theme (System/Light/Dark) to the main window and the tray icon.</summary>
@@ -123,6 +178,26 @@ public partial class App : Application
         // Activate() alone doesn't pull the window in front of other apps' windows (or un-minimize it),
         // so force it to the foreground.
         WindowActivationHelper.BringToFront(MainWindow);
+    });
+
+    /// <summary>
+    /// Tray left-click: minimize the main window if the user is already looking at it, otherwise show it
+    /// and pull it to the foreground. "Already looking at it" means on screen (not hidden to the tray, not
+    /// minimized) *and* focused — a window that's merely visible behind another app gets foregrounded, so
+    /// one click never both raises and hides it.
+    /// </summary>
+    public void ToggleMainWindow() => RunOnUi(() =>
+    {
+        if (MainWindow is not MainWindow window)
+            return;
+
+        if (WindowActivationHelper.IsOnScreen(window) && window.WasRecentlyActive)
+        {
+            WindowActivationHelper.Minimize(window);
+            return;
+        }
+
+        ShowMainWindow();
     });
 
     /// <summary>Copy the current listening URL to the clipboard (on the UI thread).</summary>

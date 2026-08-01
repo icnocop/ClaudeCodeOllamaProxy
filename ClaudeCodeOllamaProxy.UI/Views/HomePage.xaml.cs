@@ -9,12 +9,16 @@ namespace ClaudeCodeOllamaProxy.UI.Views;
 
 public sealed partial class HomePage : Page
 {
+    // Guards the control event handlers while the page pushes persisted settings into them.
+    private bool _loading;
+
     private ProxyHostController Controller => App.ProxyController;
 
     public HomePage() => InitializeComponent();
 
     protected override void OnNavigatedTo(NavigationEventArgs e)
     {
+        LoadFromSettings();
         Controller.StateChanged += OnStateChanged;
         UpdateState();
     }
@@ -22,6 +26,19 @@ public sealed partial class HomePage : Page
     protected override void OnNavigatedFrom(NavigationEventArgs e)
     {
         Controller.StateChanged -= OnStateChanged;
+    }
+
+    private void LoadFromSettings()
+    {
+        _loading = true;
+        try
+        {
+            PortBox.Value = App.Settings.Port;
+        }
+        finally
+        {
+            _loading = false;
+        }
     }
 
     private void OnStateChanged() => DispatcherQueue.TryEnqueue(UpdateState);
@@ -36,13 +53,48 @@ public sealed partial class HomePage : Page
         StartButton.IsEnabled = !running;
         StopButton.IsEnabled = running;
         RestartButton.IsEnabled = running;
+
+        // RunningPort only changes with the host's lifecycle, so re-evaluate the pending-port notice here.
+        UpdatePortRestartBar();
     }
 
     private void CopyButton_Click(object sender, RoutedEventArgs e) =>
         ClipboardHelper.SetText(Controller.ListeningUrl);
 
-    private void SettingsLink_Click(object sender, RoutedEventArgs e) =>
-        (App.MainWindow as MainWindow)?.NavigateToSettings();
+    private void PortBox_ValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
+    {
+        if (_loading)
+            return;
+
+        // Clearing the box makes Value NaN before InvalidInputOverwritten reverts the text on focus loss;
+        // (int)NaN is garbage (e.g. int.MinValue), which would persist and later bind a random port. Restore
+        // the last valid port and skip persisting until the control overwrites the empty input itself.
+        if (double.IsNaN(args.NewValue))
+        {
+            PortBox.Value = App.Settings.Port;
+            return;
+        }
+
+        // InvalidInputOverwritten + Minimum/Maximum guarantees any other value is an in-range number, so just
+        // persist it. The host stays on its current port until an explicit restart.
+        var port = (int)args.NewValue;
+        if (port != App.Settings.Port)
+            App.Settings.Port = port;
+
+        UpdatePortRestartBar();
+    }
+
+    private void PortDefaultButton_Click(object sender, RoutedEventArgs e) =>
+        PortBox.Value = SettingsStore.DefaultPort; // raises ValueChanged → persists + updates the restart bar
+
+    private async void RestartProxyButton_Click(object sender, RoutedEventArgs e)
+    {
+        await Controller.RestartAsync();
+        UpdatePortRestartBar();
+    }
+
+    private void UpdatePortRestartBar() =>
+        PortRestartBar.IsOpen = App.Settings.Port != Controller.RunningPort;
 
     private async void StartButton_Click(object sender, RoutedEventArgs e) =>
         await Controller.StartAsync();
