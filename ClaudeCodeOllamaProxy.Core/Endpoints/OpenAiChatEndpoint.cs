@@ -19,6 +19,10 @@ public static class OpenAiChatEndpoint
     public static void MapOpenAiChatEndpoint(this IEndpointRouteBuilder app)
     {
         app.MapPost("/v1/chat/completions", HandleAsync);
+
+        // VS 2026's "Agent (Preview)" mode drives the GitHub Copilot CLI, whose OpenAI client uses the
+        // configured Ollama URL as its base URL verbatim — so it posts to /chat/completions with no /v1.
+        app.MapPost("/chat/completions", HandleAsync);
     }
 
     private static async Task HandleAsync(

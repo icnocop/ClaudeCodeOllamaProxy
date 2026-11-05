@@ -81,6 +81,17 @@ public static class ProxyHost
 
         app.UseWireTraceLogging();
 
+        // Requests for routes this proxy doesn't implement would otherwise be invisible below Trace, yet the
+        // client only reports a bare "HTTP 404". Always surface them so a new client/protocol path shows up.
+        var routingLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("ClaudeCodeOllamaProxy.Routing");
+        app.Use(async (ctx, next) =>
+        {
+            await next(ctx);
+            if (ctx.Response.StatusCode == StatusCodes.Status404NotFound && ctx.GetEndpoint() is null)
+                routingLogger.LogWarning("Unmapped request: {Method} {Path}{Query} -> 404 (User-Agent: {UserAgent})",
+                    ctx.Request.Method, ctx.Request.Path, ctx.Request.QueryString, ctx.Request.Headers.UserAgent.ToString());
+        });
+
         app.MapOllamaDiscoveryEndpoints();
         app.MapOllamaChatEndpoint();
         app.MapOpenAiChatEndpoint();
