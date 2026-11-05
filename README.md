@@ -26,6 +26,9 @@ flowchart LR
 3. In Copilot Chat, add an **Ollama** provider pointed at that URL —
    [Visual Studio setup](docs/visual-studio-setup.md) ·
    [VS Code setup](docs/vscode-setup.md).
+   Enter the URL without `/v1` — the proxy serves its OpenAI chat and model endpoints both with and
+   without `/v1`, so Visual Studio 2026's **Agent (Preview)** mode (which appends `/chat/completions`
+   to the URL as-is) works too.
 4. Pick a Claude model in the model picker and switch to **Agent** mode to let Claude edit files.
 
 Requires **Visual Studio 2022 17.14+** / **Visual Studio 2026**, or **VS Code 1.99+** — the builds

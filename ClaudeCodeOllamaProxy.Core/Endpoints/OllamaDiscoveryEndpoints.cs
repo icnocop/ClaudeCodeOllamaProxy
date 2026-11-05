@@ -83,19 +83,24 @@ public static class OllamaDiscoveryEndpoints
             return Results.Json(response, JsonDefaults.Options);
         });
 
-        app.MapGet("/v1/models", async (ModelCatalog catalog, CancellationToken ct) =>
-        {
-            var models = await catalog.GetModelsAsync(ct);
-            var data = models.Select(m => new
-            {
-                id = m.Id,
-                @object = "model",
-                created = 0,
-                owned_by = "anthropic",
-            });
+        // /models (no /v1) for OpenAI clients that use the Ollama URL as their base URL verbatim — e.g. the
+        // GitHub Copilot CLI behind VS 2026's "Agent (Preview)" mode (see OpenAiChatEndpoint).
+        app.MapGet("/v1/models", ListOpenAiModelsAsync);
+        app.MapGet("/models", ListOpenAiModelsAsync);
+    }
 
-            return Results.Json(new { @object = "list", data }, JsonDefaults.Options);
+    private static async Task<IResult> ListOpenAiModelsAsync(ModelCatalog catalog, CancellationToken ct)
+    {
+        var models = await catalog.GetModelsAsync(ct);
+        var data = models.Select(m => new
+        {
+            id = m.Id,
+            @object = "model",
+            created = 0,
+            owned_by = "anthropic",
         });
+
+        return Results.Json(new { @object = "list", data }, JsonDefaults.Options);
     }
 
     private static async Task<string?> ReadModelIdAsync(HttpContext ctx, CancellationToken ct)
